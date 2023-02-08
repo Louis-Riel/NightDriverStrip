@@ -102,6 +102,11 @@
 
 #include "RemoteDebug.h"
 
+#define EFFECT_RUNNER 1
+#ifndef MAX_EFFECT_CACHE_SIZE
+#define MAX_EFFECT_CACHE_SIZE 100
+#endif
+
 // The goal here is to get two variables, one numeric and one string, from the *same* version
 // value.  So if version = 020, 
 //
@@ -237,7 +242,7 @@ extern RemoteDebug Debug;           // Let everyone in the project know about it
     // Please ensure you supply sufficent power to your strip, as even the DEMO of 144 LEDs, if set
     // to white, would overload a USB port.
 
-    #define MATRIX_WIDTH            144
+    #define MATRIX_WIDTH            30
     #define MATRIX_HEIGHT           8
     #define NUM_LEDS                (MATRIX_WIDTH*MATRIX_HEIGHT)
     #define NUM_CHANNELS            1
@@ -250,16 +255,16 @@ extern RemoteDebug Debug;           // Let everyone in the project know about it
     // Once you have a working project, selectively enable various additional features by setting
     // them to 1 in the list below.  This DEMO config assumes no audio (mic), or screen, etc.
 
-    #define ENABLE_WIFI             0   // Connect to WiFi
-    #define INCOMING_WIFI_ENABLED   0   // Accepting incoming color data and commands
+    #define ENABLE_WIFI             1   // Connect to WiFi
+    #define INCOMING_WIFI_ENABLED   1   // Accepting incoming color data and commands
     #define TIME_BEFORE_LOCAL       0   // How many seconds before the lamp times out and shows local content
-    #define ENABLE_NTP              0   // Set the clock from the web
+    #define ENABLE_NTP              1   // Set the clock from the web
     #define ENABLE_OTA              0   // Accept over the air flash updates
 
     #if M5STICKC || M5STICKCPLUS
         #define LED_PIN0 32
     #else
-        #define LED_PIN0 5
+        #define LED_PIN0 32
     #endif
 
     // The webserver serves files from its SPIFFS filesystem, such as index.html, and those files must be
@@ -267,7 +272,7 @@ extern RemoteDebug Debug;           // Let everyone in the project know about it
     // you should be able to see/select the list of effects by visiting the chip's IP in a browser.  You can
     // get the chip's IP by watching the serial output or checking your router for the DHCP given to 'LEDWifi'
 
-    #define ENABLE_WEBSERVER        0   // Turn on the internal webserver
+    #define ENABLE_WEBSERVER        1   // Turn on the internal webserver
 
 #elif LANTERN 
 
@@ -396,12 +401,12 @@ extern RemoteDebug Debug;           // Let everyone in the project know about it
     // It displays a spectrum analyzer and music visualizer
 
     #define ENABLE_AUDIOSERIAL      0   // Report peaks at 2400baud on serial port for PETRock consumption   
-    #define ENABLE_WIFI             0   // Connect to WiFi
+    #define ENABLE_WIFI             1   // Connect to WiFi
     #define INCOMING_WIFI_ENABLED   0   // Accepting incoming color data and commands
     #define WAIT_FOR_WIFI           0   // Hold in setup until we have WiFi - for strips without effects
     #define TIME_BEFORE_LOCAL       0   // How many seconds before the lamp times out and shows local content
-    #define ENABLE_WEBSERVER        0   // Turn on the internal webserver
-    #define ENABLE_NTP              0   // Set the clock from the web
+    #define ENABLE_WEBSERVER        1   // Turn on the internal webserver
+    #define ENABLE_NTP              1   // Set the clock from the web
     #define ENABLE_OTA              0   // Accept over the air flash updates
     #define ENABLE_REMOTE           0   // IR Remote Control
     #define ENABLE_AUDIO            1   // Listen for audio from the microphone and process it
@@ -678,13 +683,13 @@ extern RemoteDebug Debug;           // Let everyone in the project know about it
     #define TIME_BEFORE_LOCAL       5   // How many seconds before the lamp times out and shows local content
 
     #define NUM_CHANNELS    1
-    #define MATRIX_WIDTH    (8*144)       // My naximum run, and about all you can do at 30fps  
+    #define MATRIX_WIDTH    (20)       // My naximum run, and about all you can do at 30fps  
     #define MATRIX_HEIGHT   1
     #define NUM_LEDS        (MATRIX_WIDTH * MATRIX_HEIGHT)
     #define RESERVE_MEMORY  160000                // WiFi needs about 100K free to be able to (re)connect!
     #define ENABLE_REMOTE   0                     // IR Remote Control
     #define ENABLE_AUDIO    0                     // Listen for audio from the microphone and process it
-    #define LED_PIN0        5
+    #define LED_PIN0        32
 
     #define POWER_LIMIT_MW (INT_MAX)              // Unlimited power for long strips, up to you to limit here or supply enough!
 

@@ -325,6 +325,8 @@ DRAM_ATTR LEDStripEffect *g_apEffects[] =
 #if DEMO
 
         new RainbowFillEffect(6, 2),
+        new LanternEffect(),
+        new PaletteEffect(RainbowColors_p, 2.0f, 0.1, 0.0, 1.0, 0.0, LINEARBLEND, true, 1.0),
 
 #elif LASERLINE
 
@@ -686,12 +688,26 @@ DRAM_ATTR LEDStripEffect *g_apEffects[] =
 
 };
 
+#if EFFECT_RUNNER
+void StartEffectsManager(LEDStripEffect** effects, size_t numEffects)
+{
+        debugI("InitEffectsManager...");
+        g_aptrEffectManager = std::make_unique<EffectManager<GFXBase>>(effects, numEffects, g_aptrDevices );
+
+        if (false == g_aptrEffectManager->Init())
+                throw std::runtime_error("Could not initialize effect manager");
+
+        debugI("Launching Drawing:");
+        debugE("Heap before launch: %s", heap_caps_check_integrity_all(true) ? "PASS" : "FAIL");
+        g_TaskManager.StartDrawThread();
+}
+#else
 // If this assert fires, you have not defined any effects in the table above.  If adding a new config, you need to 
 // add the list of effects in this table as shown for the vaious other existing configs.  You MUST have at least
 // one effect even if it's the Status effect.
 
 static_assert(ARRAYSIZE(g_apEffects) > 0);
-
+#endif
 // InitEffectsManager
 //
 // Initializes the effect manager.  Reboots on failure, since it's not optional
@@ -703,6 +719,12 @@ void InitEffectsManager()
 
         if (false == g_aptrEffectManager->Init())
                 throw std::runtime_error("Could not initialize effect manager");
+
+        if (!g_TaskManager.isDrawTaskRunning()) {
+                debugI("Launching Drawing:");
+                debugE("Heap before launch: %s", heap_caps_check_integrity_all(true) ? "PASS" : "FAIL");
+                g_TaskManager.StartDrawThread();
+        }
 }
 
 extern DRAM_ATTR std::unique_ptr<EffectManager<GFXBase>> g_aptrEffectManager;

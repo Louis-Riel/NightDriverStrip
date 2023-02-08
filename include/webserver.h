@@ -75,14 +75,13 @@ class CWebServer
         pRequest->send(pResponse);      
     }
 
-    void GetEffectListText(AsyncWebServerRequest * pRequest)
+    void SetEffectList(AsyncWebServerRequest * pRequest)
     {
         static size_t jsonBufferSize = JSON_BUFFER_BASE_SIZE;
         bool bufferOverflow;
-        debugV("GetEffectListText");
+        debugI("SetEffectList");
 
         do {
-            bufferOverflow = false;
             auto response = new AsyncJsonResponse(false, jsonBufferSize);
             response->addHeader("Server","NightDriverStrip");
             auto j = response->getRoot();
@@ -105,6 +104,45 @@ class CWebServer
                     break;
                 }
             }       
+
+            response->addHeader("Access-Control-Allow-Origin", "*");
+            response->setLength();
+            pRequest->send(response);
+        } while (bufferOverflow);
+    }
+
+    void GetEffectListText(AsyncWebServerRequest * pRequest)
+    {
+        static size_t jsonBufferSize = JSON_BUFFER_BASE_SIZE;
+        bool bufferOverflow;
+        debugV("GetEffectListText");
+
+        do {
+            bufferOverflow = false;
+            auto response = new AsyncJsonResponse(false, jsonBufferSize);
+            response->addHeader("Server","NightDriverStrip");
+            auto j = response->getRoot();
+
+            if (g_aptrEffectManager) {
+                j["currentEffect"]         = g_aptrEffectManager->GetCurrentEffectIndex();
+                j["millisecondsRemaining"] = g_aptrEffectManager->GetTimeRemainingForCurrentEffect();
+                j["effectInterval"]        = g_aptrEffectManager->GetInterval();
+                j["enabledCount"]          = g_aptrEffectManager->EnabledCount();
+
+                for (int i = 0; i < g_aptrEffectManager->EffectCount(); i++) { 
+                    DynamicJsonDocument effectDoc(256);
+                    effectDoc["name"]    = g_aptrEffectManager->EffectsList()[i]->FriendlyName();
+                    effectDoc["enabled"] = g_aptrEffectManager->IsEffectEnabled(i);
+
+                    if (!j["Effects"].add(effectDoc)) {
+                        bufferOverflow = true;
+                        jsonBufferSize += JSON_BUFFER_INCREMENT;
+                        delete response;
+                        debugV("JSON reponse buffer overflow! Increased buffer to %zu bytes", jsonBufferSize);
+                        break;
+                    }
+                }       
+            }
 
             response->addHeader("Access-Control-Allow-Origin", "*");
             response->setLength();
@@ -255,6 +293,63 @@ class CWebServer
         AddCORSHeaderAndSendOKResponse(pRequest);
     }
 
+#if EFFECT_RUNNER
+    LEDStripEffect* buildEffect(JsonObject effect ) {
+        if(effect.containsKey("function")) {
+            if (strncmp(effect["function"],"RainbowFillEffect",18) == 0) {
+                debugI("Building RainbowFillEffect");
+                return new RainbowFillEffect(6, 2);
+            }
+            if (strncmp(effect["function"],"LanternEffect",14) == 0) {
+                debugI("Building LanternEffect");
+                return new LanternEffect();
+            }
+            if (strncmp(effect["function"],"PaletteEffect",14) == 0) {
+                debugI("Building PaletteEffect");
+                return new PaletteEffect(RainbowColors_p, 2.0f, 0.1, 0.0, 1.0, 0.0, LINEARBLEND, true, 1.0);
+            }
+            debugI("No builder for %s", effect["function"]);
+        }
+        debugI("No input character");
+        return nullptr;
+    }
+
+    AsyncCallbackJsonWebHandler * setEffectList(CWebServer* server) {
+        return new AsyncCallbackJsonWebHandler("/setEffectList", [server](AsyncWebServerRequest *request, JsonVariant &json) {
+            if (json.is<JsonArray>())
+            {
+                LEDStripEffect **effects = (LEDStripEffect **)malloc(MAX_EFFECT_CACHE_SIZE*sizeof(void*));
+                memset(effects,0,sizeof(void*)*MAX_EFFECTS);
+                uint numEffects = 0;
+                for (auto effect : json.as<JsonArray>()) {
+                    effects[numEffects++] = server->buildEffect(effect.as<JsonObject>());
+                }
+                if (numEffects > 0) {
+                    StartEffectsManager(effects,numEffects);
+                    auto response = new AsyncJsonResponse(false, JSON_BUFFER_BASE_SIZE);
+                    response->getRoot()["numEffects"] = numEffects;
+                    response->setLength();
+                    response->setCode(201);
+                    request->send(response);
+                } else {
+                    auto response = new AsyncJsonResponse(false, JSON_BUFFER_BASE_SIZE);
+                    response->getRoot()["error"] = "no effects created from input";
+                    response->setLength();
+                    response->setCode(400);
+                    request->send(response);
+                }
+            }
+            else 
+            {
+                auto response = new AsyncJsonResponse(false, JSON_BUFFER_BASE_SIZE);
+                response->getRoot()["error"] = "invalid input format";
+                response->setLength();
+                response->setCode(400);
+                request->send(response);
+            }
+        });
+    }
+#endif
     void begin()
     {
         debugI("Connecting Web Endpoints");
@@ -274,7 +369,9 @@ class CWebServer
 
         _server.on("/", HTTP_GET, [this](AsyncWebServerRequest * pRequest) { pRequest->send(200, "text/html", html_start);});
         _server.on("/main.jsx", HTTP_GET, [this](AsyncWebServerRequest * pRequest) { pRequest->send(200, "application/javascript", jsx_start); });
-
+#if EFFECT_RUNNER
+        _server.addHandler(setEffectList(this));
+#endif
         _server.onNotFound([](AsyncWebServerRequest *request) 
         {
             if (request->method() == HTTP_OPTIONS) {

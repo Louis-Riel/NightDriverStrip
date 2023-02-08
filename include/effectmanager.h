@@ -53,6 +53,7 @@ extern uint8_t g_Fader;
 // References to functions in other C files
 
 void InitEffectsManager();
+void StartEffectsManager(LEDStripEffect** effects, size_t numEffects);
 std::shared_ptr<LEDStripEffect> GetSpectrumAnalyzer(CRGB color);
 std::shared_ptr<LEDStripEffect> GetSpectrumAnalyzer(CRGB color, CRGB color2);
 extern DRAM_ATTR std::shared_ptr<GFXBase> g_ptrDevices[NUM_CHANNELS];
@@ -102,6 +103,12 @@ public:
     ~EffectManager()
     {
         ClearRemoteColor();
+#if EFFECT_RUNNER
+        for (int idx=0; idx < _cEffects; idx++) {
+            delete _ppEffects[idx];
+        }
+        free(_ppEffects);
+#endif
     }
 
     std::shared_ptr<GFXTYPE> operator[](size_t index) const

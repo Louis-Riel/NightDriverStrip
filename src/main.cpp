@@ -215,7 +215,6 @@ DRAM_ATTR const int g_aRingSizeTable[MAX_RINGS] =
 // External Variables
 //
 
-extern DRAM_ATTR LEDStripEffect * g_apEffects[];      // Main table of internal events in effects.cpp
 extern DRAM_ATTR std::unique_ptr<LEDBufferManager> g_aptrBufferManager[NUM_CHANNELS];
 
 //
@@ -726,17 +725,14 @@ void setup()
         pinMode(INPUT_PIN, INPUT);
     #endif
 
+#ifndef EFFECT_RUNNER
     debugI("Initializing effects manager...");
     InitEffectsManager();
+#endif
 
 #if USE_SCREEN
     g_TaskManager.StartScreenThread();
 #endif
-
-    debugI("Launching Drawing:");
-    debugE("Heap before launch: %s", heap_caps_check_integrity_all(true) ? "PASS" : "FAIL");
-    g_TaskManager.StartDrawThread();
-    CheckHeap();
 
 #if ENABLE_WIFI && WAIT_FOR_WIFI
     debugI("Calling ConnectToWifi()\n");

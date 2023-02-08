@@ -22,9 +22,9 @@ const DesignerPanel = withStyles(designStyle)(props => {
     
             chipRequest(`${httpPrefix !== undefined ? httpPrefix : ""}/getEffectList`,{signal:aborter.signal})
                 .then(resp => resp.json())
-                .then(setEffects)
-                .then(()=>clearTimeout(timer))
-                .catch(err => addNotification("Error","Service","Get Effect List",err));
+                .then(effects => effects && effects.Effects && setEffects(effects))
+                .catch(err => addNotification("Error","Service","Get Effect List",err))
+                .finally(()=>clearTimeout(timer));
     
             return () => {
                 abortControler && abortControler.abort();

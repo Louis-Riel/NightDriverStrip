@@ -207,6 +207,10 @@ private:
 
 public:
 
+    bool isDrawTaskRunning() {
+        return _taskDraw == nullptr;
+    }
+
     void StartScreenThread()
     {
         debugW(">> Launching Screen Thread");
