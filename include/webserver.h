@@ -294,26 +294,6 @@ class CWebServer
     }
 
 #if EFFECT_RUNNER
-    LEDStripEffect* buildEffect(JsonObject effect ) {
-        if(effect.containsKey("function")) {
-            if (strncmp(effect["function"],"RainbowFillEffect",18) == 0) {
-                debugI("Building RainbowFillEffect");
-                return new RainbowFillEffect(6, 2);
-            }
-            if (strncmp(effect["function"],"LanternEffect",14) == 0) {
-                debugI("Building LanternEffect");
-                return new LanternEffect();
-            }
-            if (strncmp(effect["function"],"PaletteEffect",14) == 0) {
-                debugI("Building PaletteEffect");
-                return new PaletteEffect(RainbowColors_p, 2.0f, 0.1, 0.0, 1.0, 0.0, LINEARBLEND, true, 1.0);
-            }
-            debugI("No builder for %s", effect["function"]);
-        }
-        debugI("No input character");
-        return nullptr;
-    }
-
     AsyncCallbackJsonWebHandler * setEffectList(CWebServer* server) {
         return new AsyncCallbackJsonWebHandler("/setEffectList", [server](AsyncWebServerRequest *request, JsonVariant &json) {
             if (json.is<JsonArray>())
@@ -322,7 +302,7 @@ class CWebServer
                 memset(effects,0,sizeof(void*)*MAX_EFFECTS);
                 uint numEffects = 0;
                 for (auto effect : json.as<JsonArray>()) {
-                    effects[numEffects++] = server->buildEffect(effect.as<JsonObject>());
+                    effects[numEffects++] = g_aptrEffectManager->buildEffect(effect);
                 }
                 if (numEffects > 0) {
                     StartEffectsManager(effects,numEffects);

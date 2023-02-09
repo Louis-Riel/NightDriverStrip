@@ -42,6 +42,10 @@
 #include <vector>
 #include <math.h>
 
+#include <Arduino.h>
+#include <AsyncJson.h>
+#include <ArduinoJson.h>
+
 #include "effects/strip/misceffects.h"
 #include "effects/strip/fireeffect.h"
 
@@ -480,6 +484,69 @@ public:
         {
             g_Fader = 255; // No fade, not at start or end
         }
+    }
+
+    const CRGBPalette256 getPaletteByName(const char* name) 
+    {
+        if (strncmp(name,"RainbowColors",14)==0) {
+            return RainbowColors_p;
+        }
+        if (strncmp(name,"CloudColors",12)==0) {
+            return CloudColors_p;
+        }
+        if (strncmp(name,"LavaColors",11)==0) {
+            return LavaColors_p;
+        }
+        if (strncmp(name,"OceanColors",12)==0) {
+            return OceanColors_p;
+        }
+        if (strncmp(name,"ForestColors",13)==0) {
+            return ForestColors_p;
+        }
+        if (strncmp(name,"RainbowStripeColors",20)==0) {
+            return RainbowStripeColors_p;
+        }
+        if (strncmp(name,"PartyColors",12)==0) {
+            return PartyColors_p;
+        }
+        if (strncmp(name,"HeatColors",11)==0) {
+            return HeatColors_p;
+        }
+        if (strncmp(name,"RainbowGradiant",16)==0) {
+            return Rainbow_gp;
+        }
+        debugI("No palette called %s",name);
+
+        return RainbowColors_p;
+    }
+
+    LEDStripEffect* buildEffect(JsonObject effect ) {
+        if(effect.containsKey("function")) {
+            if (strncmp(effect["function"],"RainbowFillEffect",18) == 0) {
+                auto params = effect["params"];
+                return new RainbowFillEffect(params.containsKey("speedDivisor") ? params["speedDivisor"] : 6.0f,
+                                             params.containsKey("deltaHue") ? params["deltaHue"] : 2);
+            }
+            if (strncmp(effect["function"],"LanternEffect",14) == 0) {
+                return new LanternEffect();
+            }
+            if (strncmp(effect["function"],"PaletteEffect",14) == 0) {
+                auto params = effect["params"];
+                return new PaletteEffect(getPaletteByName(params["palette"]),
+                                         params.containsKey("density") ? params["density"] : 1.0f,                
+                                         params.containsKey("paletteSpeed") ? params["paletteSpeed"] : 1.0f, 
+                                         params.containsKey("ledsPerSecond") ? params["ledsPerSecond"] : 0.0f, 
+                                         params.containsKey("lightSize") ? params["lightSize"] : 1.0f, 
+                                         params.containsKey("gapSize") ? params["gapSize"] : 1.0f,
+                                         params.containsKey("blend") ? (params["blend"] ? LINEARBLEND : NOBLEND) : LINEARBLEND, 
+                                         params.containsKey("bErase") ? params["bErase"] : true,
+                                         params.containsKey("brightness") ? params["brightness"] :  1.0f);
+            }
+            debugI("No builder for %s", effect["function"]);
+        } else {
+            debugI("No input function");
+        }
+        return nullptr;
     }
 };
 
