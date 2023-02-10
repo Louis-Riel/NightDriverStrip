@@ -1,4 +1,4 @@
-const areaChartStyle = theme => ({
+const chartStyle = theme => ({
     root: {
         "display": "flex",
         "flex-direction": "column",

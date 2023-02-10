@@ -1,7 +1,6 @@
 const Effect = withStyles(effectStyle)(props => {
-    const { classes, effect, effectInterval, effectIndex, millisecondsRemaining, selected, effectEnable, navigateTo, requestRunning } = props;
+    const { classes, effect, effectInterval, effectIndex, millisecondsRemaining, selected, effectEnable, navigateTo, requestRunning, launchEditor, onDelete } = props;
     const [ progress, setProgress ] = useState(undefined);
-    const [expanded, setExpanded] = React.useState(false);
 
     useEffect(() => {
         if (millisecondsRemaining && selected) {
@@ -39,15 +38,15 @@ const Effect = withStyles(effectStyle)(props => {
                 </CardContent>
                 <CardActions disableSpacing>
                     <IconButton
-                        onClick={()=>setExpanded(!expanded)}
+                        onClick={()=>launchEditor()}
                         aria-label="show more">
                         <Icon>settings</Icon>
                     </IconButton>
+                    <IconButton
+                        onClick={()=>onDelete()}
+                        aria-label="delete">
+                        <Icon>delete</Icon>
+                    </IconButton>
                 </CardActions>
-                <Collapse in={expanded} timeout="auto" unmountOnExit>
-                    <CardContent>
-                        <TextField label="Option"/>
-                    </CardContent>
-                </Collapse>
             </Card>
 });

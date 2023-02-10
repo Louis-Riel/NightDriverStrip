@@ -488,34 +488,36 @@ public:
 
     const CRGBPalette256 getPaletteByName(const char* name) 
     {
-        if (strncmp(name,"RainbowColors",14)==0) {
-            return RainbowColors_p;
+        if (name != nullptr) {
+            if (strncmp(name,"RainbowColors",14)==0) {
+                return RainbowColors_p;
+            }
+            if (strncmp(name,"CloudColors",12)==0) {
+                return CloudColors_p;
+            }
+            if (strncmp(name,"LavaColors",11)==0) {
+                return LavaColors_p;
+            }
+            if (strncmp(name,"OceanColors",12)==0) {
+                return OceanColors_p;
+            }
+            if (strncmp(name,"ForestColors",13)==0) {
+                return ForestColors_p;
+            }
+            if (strncmp(name,"RainbowStripeColors",20)==0) {
+                return RainbowStripeColors_p;
+            }
+            if (strncmp(name,"PartyColors",12)==0) {
+                return PartyColors_p;
+            }
+            if (strncmp(name,"HeatColors",11)==0) {
+                return HeatColors_p;
+            }
+            if (strncmp(name,"RainbowGradiant",16)==0) {
+                return Rainbow_gp;
+            }
+            debugI("No palette called %s",name);
         }
-        if (strncmp(name,"CloudColors",12)==0) {
-            return CloudColors_p;
-        }
-        if (strncmp(name,"LavaColors",11)==0) {
-            return LavaColors_p;
-        }
-        if (strncmp(name,"OceanColors",12)==0) {
-            return OceanColors_p;
-        }
-        if (strncmp(name,"ForestColors",13)==0) {
-            return ForestColors_p;
-        }
-        if (strncmp(name,"RainbowStripeColors",20)==0) {
-            return RainbowStripeColors_p;
-        }
-        if (strncmp(name,"PartyColors",12)==0) {
-            return PartyColors_p;
-        }
-        if (strncmp(name,"HeatColors",11)==0) {
-            return HeatColors_p;
-        }
-        if (strncmp(name,"RainbowGradiant",16)==0) {
-            return Rainbow_gp;
-        }
-        debugI("No palette called %s",name);
 
         return RainbowColors_p;
     }

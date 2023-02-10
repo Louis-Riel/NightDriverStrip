@@ -7,11 +7,11 @@ const notificationsStyle = theme => ({
     },
     errors: {
         display: "flex",
-        flexDirection: "column"
+        flexDirection: "column",
     },
     errorHeader: {
         display: "flex",
-        flexDirection: "row",
+        flexDirection: "row" ,
         justifyContent: "space-between",
         borderBottom: "solid aquamarine 2px",
     }

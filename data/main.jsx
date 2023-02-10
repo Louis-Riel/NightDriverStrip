@@ -3,9 +3,9 @@ const { useState, useEffect, useMemo, useRef, StrictMode } = window.React;
 
 const { ThemeOptions, createTheme, ThemeProvider, Checkbox, AppBar, Toolbar, IconButton, Icon, MenuIcon, Typography } = window.MaterialUI;
 const { Badge, withStyles, CssBaseline, Drawer, Divider, List, ListItem, ListItemIcon, ListItemText } = window.MaterialUI;
-const { Box, Dialog, Slide, Button, TextField, FormControlLabel, useTheme, LinearProgress, Popover } = window.MaterialUI;
+const { Box, Dialog, Slide, Button, TextField, FormControl, FormControlLabel, useTheme, LinearProgress, Popover } = window.MaterialUI;
 const { Card, CardHeader, CardContent, Collapse, CardActions, CardActionArea, Avatar, Link, Paper } = window.MaterialUI;
-const { ExpandMore, ClickAwayListener } = window.MaterialUI;
+const { ExpandMore, ClickAwayListener, Modal, FormHelperText, InputLabel, Select, MenuItem } = window.MaterialUI;
 
 const { AreaChart, BarChart, Area, Bar, ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend } = window.Recharts;
 
@@ -217,102 +217,6 @@ const getPalette = (mode) => {
 const getTheme = (mode) => createTheme({
   palette: getPalette(mode),
 });
-
-// const pannelText= {
-//   fontFamily: ["Roboto", "Helvetica", "Arial", "sans-serif"].join(", ")
-// };
-
-// const commonTypography={
-//   littleHeader: {
-//       fontWeight: 500,
-//       fontSize: "1.25rem",
-//       lineHeight: 1.6,
-//       letterSpacing: "0.0075em",
-//   },
-//   littleValue: {
-//     lineHeight: 1.0,
-//     fontSize: "3.75rem",
-//     fontWeight: 300
-//   }
-// };
-    
-// const lightTheme = createTheme({
-//     palette: {
-//       mode: 'light',
-//       type: 'light',
-//       taskManager: {
-//         strokeColor: '#90ff91',
-//         MemoryColor: '#0002ff',
-//         idleColor: 'black',
-//         color1: '#58be59db',
-//         color2: '#58be59a1',
-//         color3: '#58be596b',
-//         color4: '#58be5921',
-//         bcolor1: '#189cdbff',
-//         bcolor2: '#189cdba1',
-//         bcolor3: '#189cdb66',
-//         bcolor4: '#189cdb38',
-//       }
-//     },
-//   typography: commonTypography,
-// });
-
-// const darkTheme = createTheme({
-//   palette: {
-//     mode: 'dark',
-//     type: 'dark',
-//     taskManager: {
-//       strokeColor: '#90ff91',
-//       MemoryColor: '#0002ff',
-//       idleColor: 'black',
-//       color1: '#58be59db',
-//       color2: '#58be59a1',
-//       color3: '#58be596b',
-//       color4: '#58be5921',
-//       bcolor1: '#189cdbff',
-//       bcolor2: '#189cdba1',
-//       bcolor3: '#189cdb66',
-//       bcolor4: '#189cdb38',
-//     },
-//     text: {
-//       primary: "#97ea44",
-//       secondary: "aquamarine",
-//       attribute: "aqua",
-//       icon: "aquamarine"
-//     },
-//     primary: {
-//       main: "#97ea44"
-//     }
-//   },
-//   typography: commonTypography,
-//   overrides: {
-//     MuiAppBar: {
-//       colorPrimary: {
-//         backgroundColor: "black",
-//         color: "textPrimary"
-//       }
-//     },
-//     MuiIconButton: {
-//       colorPrimary: {
-//         color: "aquamarine"
-//       },
-//       colorSecondary: {
-//         color: "aqua"
-//       },
-//       root:{
-//         color: "lightgreen",
-//       }
-//     },
-//     MuiCheckbox: {
-//       colorPrimary: {
-//         color: "textPrimary"
-//       },
-//       colorSecondary: {
-//         &$checked: "aquamarine"
-//       }
-//     }
-//   },
-// });
 const notificationsStyle = theme => ({
     root: {
     },
@@ -322,11 +226,11 @@ const notificationsStyle = theme => ({
     },
     errors: {
         display: "flex",
-        flexDirection: "column"
+        flexDirection: "column",
     },
     errorHeader: {
         display: "flex",
-        flexDirection: "row",
+        flexDirection: "row" ,
         justifyContent: "space-between",
         borderBottom: "solid aquamarine 2px",
     }
@@ -475,6 +379,25 @@ const mainAppStyle = theme => ({
     timeremaining: {
         width: "50px"
     }
+});const effectBuilderStyle = theme => ({
+    root: {
+        display: "flex",
+        flexDirection: "column",
+        padding: "10px",
+    },
+    effectRequest: {
+        display: "flex",
+        flexDirection: "row",
+        flexWrap: "wrap",
+        alignContent: "flex-start",
+        justifyContent: "space-around",
+        overflow: "auto",
+        marginBottom: "auto",
+    },
+    parameters: {
+        display: "flex",
+        flexDirection: "row"
+    }
 });const effectStyle = theme => ({
     root: {
         "display": "flex",
@@ -585,7 +508,7 @@ const staticStatStyle = theme => ({
         "margin-right": "5px"
     }
 });
-const areaChartStyle = theme => ({
+const chartStyle = theme => ({
     root: {
         "display": "flex",
         "flex-direction": "column",
@@ -1019,6 +942,9 @@ const ConfigPanel = withStyles(configStyle)(props => {
 });const DesignerPanel = withStyles(designStyle)(props => {
     const { classes, open, addNotification } = props;
     const [ effects, setEffects ] = useState(undefined);
+    const [ effectRequests, setEffectRequests ] = useState(JSON.parse(localStorage.getItem("effects")) || []);
+    const [ effectRequest, setEffectRequest ] = useState(undefined);
+    const [ effectRequestIdx, setEffectRequestIdx ] = useState(undefined);
     const [ abortControler, setAbortControler ] = useState(undefined);
     const [ nextRefreshDate, setNextRefreshDate] = useState(undefined);
     const [ editing, setEditing ] = useState(false);
@@ -1040,9 +966,9 @@ const ConfigPanel = withStyles(configStyle)(props => {
     
             chipRequest(`${httpPrefix !== undefined ? httpPrefix : ""}/getEffectList`,{signal:aborter.signal})
                 .then(resp => resp.json())
-                .then(setEffects)
-                .then(()=>clearTimeout(timer))
-                .catch(err => addNotification("Error","Service","Get Effect List",err));
+                .then(effects => setEffects(effects))
+                .catch(err => addNotification("Error","Service","Get Effect List",err))
+                .finally(()=>clearTimeout(timer));
     
             return () => {
                 abortControler && abortControler.abort();
@@ -1050,6 +976,20 @@ const ConfigPanel = withStyles(configStyle)(props => {
             }
         }
     },[open,nextRefreshDate]);
+
+    useEffect(() => {
+        localStorage.setItem("effects",JSON.stringify(effectRequests));
+        if (effectRequests.length) {
+            chipRequest(`${httpPrefix !== undefined ? httpPrefix : ""}/setEffectList`,{
+                body:JSON.stringify(effectRequests), 
+                method:"POST",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            }).catch(err => addNotification("Error","Service","Set Effect List",err))
+              .finally(()=>setNextRefreshDate(Date.now()));
+        }
+    },[effectRequests])
 
     const requestRefresh = () => setTimeout(()=>setNextRefreshDate(Date.now()),50);
 
@@ -1137,17 +1077,42 @@ const ConfigPanel = withStyles(configStyle)(props => {
                 label="Time Remaining"
                 requestRefresh={requestRefresh}
                 millisecondsRemaining={effects.millisecondsRemaining}/>
-            {(effects.Effects.length > 1) && <Box>
-                <IconButton disabled={requestRunning} onClick={()=>navigate(false)}><Icon>skip_previous</Icon></IconButton>
-                <IconButton disabled={requestRunning} onClick={()=>navigate(true)}><Icon>skip_next</Icon></IconButton>
+            <Box>
+                {effects.Effects && <IconButton disabled={requestRunning} onClick={()=>navigate(false)}><Icon>skip_previous</Icon></IconButton>}
+                {effects.Effects && <IconButton disabled={requestRunning} onClick={()=>navigate(true)}><Icon>skip_next</Icon></IconButton>}
                 <IconButton disabled={requestRunning} onClick={()=>setNextRefreshDate(Date.now())}><Icon>refresh</Icon></IconButton>
-            </Box>}
+                <IconButton onClick={()=>{
+                    setEffectRequest({});
+                    setEffectRequestIdx(undefined);
+                }}><Icon>add</Icon></IconButton>
+                <EffectBuilder 
+                        effectRequest={effectRequest} 
+                        setEffectRequest={setEffectRequest}
+                        onSave={()=>{
+                            if (effectRequestIdx !== undefined) {
+                                setEffectRequests(prevVal => prevVal.map((val,idx)=>idx === effectRequestIdx ? effectRequest : val) );
+                                setEffectRequestIdx(undefined);
+                            } else {
+                                setEffectRequests(prevVal => [...prevVal,effectRequest] );
+                            }
+                            setEffectRequest(undefined);
+                        }}
+                        onClose={()=>{
+                            setEffectRequest(undefined);
+                            setEffectRequestIdx(undefined);
+                        }}/>
+            </Box>
         </Box>
         <Box className={classes.effects}>
-            {effects.Effects.map((effect,idx) => <Effect 
+            {effects.Effects && effects.Effects.map((effect,idx) => <Effect 
                                                     key={`effect-${idx}`}
                                                     effect={effect} 
-                                                    effectIndex={idx} 
+                                                    effectIndex={idx}
+                                                    launchEditor={()=>{
+                                                        setEffectRequest(effectRequests[idx]);
+                                                        setEffectRequestIdx(idx);
+                                                    }}
+                                                    onDelete={()=>setEffectRequests(prevVal=>prevVal.filter((_val,idx2)=>idx !== idx2))}
                                                     navigateTo={navigateTo}
                                                     requestRunning={requestRunning}
                                                     effectEnable={effectEnable}
@@ -1185,10 +1150,145 @@ const ConfigPanel = withStyles(configStyle)(props => {
         <Typography color="textSecondary" className={classes.timeremaining} width="100px" variant="little">{timeRemaining}</Typography>
     </Box>)
 
-});const Effect = withStyles(effectStyle)(props => {
-    const { classes, effect, effectInterval, effectIndex, millisecondsRemaining, selected, effectEnable, navigateTo, requestRunning } = props;
+});const EffectBuilder = withStyles(effectBuilderStyle)(props => {
+    const { classes, effectRequest, setEffectRequest, onSave, onClose } = props;
+
+    const EffectSelect= (effectRequest, setEffectRequest) => {
+        return ( 
+        <FormControl>
+            <InputLabel id="effect_function_label">Effect</InputLabel>
+            <Select
+                labelId="effect_function_label"
+                value={effectRequest.function}
+                label="Effect"
+                onChange={event => setEffectRequest(prevVal => { return { ...prevVal, "function": event.target.value }; })}
+                >
+                <MenuItem value=""><em>None</em></MenuItem>
+                <MenuItem value="RainbowFillEffect">Rainbow Fill</MenuItem>
+                <MenuItem value="LanternEffect">Lantern</MenuItem>
+                <MenuItem value="PaletteEffect">Palette</MenuItem>
+            </Select>
+            <FormHelperText>Effect Name</FormHelperText>
+        </FormControl>);
+    };
+
+    const EffectParameters= (effectRequest, setEffectRequest) => {
+        var params = undefined;
+        if (effectRequest.function == "RainbowFillEffect") {
+            params = {
+                speedDivisor: {type: "float",default: 6.0},
+                deltaHue: {type: "int",default: 2},
+            }
+        }
+        if (effectRequest.function == "PaletteEffect") {
+            params = {
+                palette: {type: "select",default: "OceanColors",values:[
+                    "RainbowColors",
+                    "CloudColors",
+                    "LavaColors",
+                    "OceanColors",
+                    "ForestColors",
+                    "RainbowStripeColors",
+                    "PartyColors",
+                    "HeatColors",
+                    "RainbowGradiant",
+                ]},
+                speedDivisor: {type: "float",default: 6.0},
+                density: {type: "float",default: 1.0},                
+                paletteSpeed: {type: "float",default: 1.0}, 
+                ledsPerSecond: {type: "float",default: 1.0}, 
+                lightSize: {type: "float",default: 1.0}, 
+                gapSize: {type: "float",default: 1.0},
+                blend: {type: "bool",default: true}, 
+                bErase: {type: "bool",default: true},
+                brightness: {type: "float",default: 1.0},
+                deltaHue: {type: "int",default: 2},
+            }
+        }
+        if (!params) {
+            return null;
+        }
+        return (
+        <List className={classes.parameters}>
+            {
+                Object.entries(params).map(param => 
+                <ListItem
+                    key={param[0]}>
+                    {["int","float","string"].includes(param[1].type) && 
+                           <TextField label={param[0]} 
+                                      variant="outlined"
+                                      type={["int","float"].includes(param[1].type) ? "number" : "text"}
+                                      pattern={param[1].type === "int" ? "^[0-9]+$" : (param[1].type === "float" ? "^[0-9]+[.0-9]*$" : ".*")}
+                                      defaultValue={effectRequest.params && effectRequest.params[param[0]] || param[1].default}
+                                      onChange={event => setEffectRequest(prevVal => { return { ...prevVal, "params": {...prevVal.params, [param[0]]:getValue(event.target.value,param[1].type)} }; })}/>}
+                    {["bool"].includes(param[1].type) && 
+                            <FormControlLabel
+                                label={param[0]} 
+                                labelPlacement="top"
+                                control={<Checkbox 
+                                    label={param[0]}
+                                    defaultChecked={effectRequest.params && effectRequest.params[param[0]] || param[1].default}
+                                    onChange={event => setEffectRequest(prevVal => { return { ...prevVal, "params": {...prevVal.params, [param[0]]:event.target.checked} }; })}/>} />}
+                    {["select"].includes(param[1].type) && 
+                            <FormControlLabel
+                            label={param[0]} 
+                            labelPlacement="top"
+                            control={<Select
+                                value={effectRequest.params && effectRequest.params[param[0]] || param[1].default}
+                                label={param[0]}
+                                onChange={event => setEffectRequest(prevVal => { return { ...prevVal, "params": {...prevVal.params, [param[0]]:getValue(event.target.value,param[1].type)} }; })}>
+                                {param[1].values.map(val=><MenuItem value={val}>{val}</MenuItem>)}
+                            </Select>}/>}
+                </ListItem>)
+            }
+        </List>);
+    };
+
+    const getValue = (value,type) => {
+        switch (type) {
+            case "int":
+                return parseInt(value);
+            case "float":
+                return parseFloat(value);
+        
+            default:
+                return value;
+        }
+    }
+
+    return effectRequest && <Modal
+            open={true}
+            onClose={onClose}>
+        <Card variant="outlined" className={classes.root}>
+            <CardHeader
+                avatar={<Avatar aria-label={effectRequest.function}>
+                            {effectRequest.function && effectRequest.function[0] || 'E'}
+                        </Avatar>}
+                title={effectRequest.function || "Effect"}
+                subheader={effectRequest.function ? "" : "Select an effect"}
+            /> 
+            <CardContent className={classes.effectRequest}>
+                {EffectSelect(effectRequest, setEffectRequest)}
+                {EffectParameters(effectRequest, setEffectRequest)}
+            </CardContent>
+            <CardActions disableSpacing>
+                <IconButton
+                    onClick={()=>onSave()}
+                    aria-label="show more">
+                    <Icon>save</Icon>
+                </IconButton>
+                <IconButton
+                    onClick={()=>onClose()}
+                    aria-label="show more">
+                    <Icon>cancel</Icon>
+                </IconButton>
+            </CardActions>
+        </Card>
+    </Modal>
+});
+const Effect = withStyles(effectStyle)(props => {
+    const { classes, effect, effectInterval, effectIndex, millisecondsRemaining, selected, effectEnable, navigateTo, requestRunning, launchEditor, onDelete } = props;
     const [ progress, setProgress ] = useState(undefined);
-    const [expanded, setExpanded] = React.useState(false);
 
     useEffect(() => {
         if (millisecondsRemaining && selected) {
@@ -1226,16 +1326,16 @@ const ConfigPanel = withStyles(configStyle)(props => {
                 </CardContent>
                 <CardActions disableSpacing>
                     <IconButton
-                        onClick={()=>setExpanded(!expanded)}
+                        onClick={()=>launchEditor()}
                         aria-label="show more">
                         <Icon>settings</Icon>
                     </IconButton>
+                    <IconButton
+                        onClick={()=>onDelete()}
+                        aria-label="delete">
+                        <Icon>delete</Icon>
+                    </IconButton>
                 </CardActions>
-                <Collapse in={expanded} timeout="auto" unmountOnExit>
-                    <CardContent>
-                        <TextField label="Option"/>
-                    </CardContent>
-                </Collapse>
             </Card>
 });const StaticStatsPanel = withStyles(staticStatStyle)(props => {
     const { classes, stat, name, detail } = props;
@@ -1256,7 +1356,7 @@ const ConfigPanel = withStyles(configStyle)(props => {
                .map(entry=><Typography key={entry[0]} variant="little" color="textSecondary" >{entry[1]}</Typography>)}
     </List>}
     </Box>
-});const AreaStat = withStyles(areaChartStyle)(props => {
+});const Chart = withStyles(chartStyle)(props => {
     const { classes, name, rawvalue, ignored, statsAnimateChange, maxSamples, headerFields , idleField, category, detail } = props;
     const getChartValues = (value) => Object.entries(value)
                         .filter(entry=>!ignored.includes(entry[0]))
@@ -1302,6 +1402,78 @@ const ConfigPanel = withStyles(configStyle)(props => {
         </div>)
     }
 
+    const areaChart = <AreaChart
+        data={lastStates}
+        height={detail ? 300 : 80}
+        width={detail ? 500 : 200}
+        stackOffset="expand">
+        <defs>
+            {Object.entries(getChartValues(rawvalue))
+                .filter(entry => entry[1] !== undefined)
+                .map((entry, idx, arr) => <linearGradient key={`color${entry[0]}`} id={`color${entry[0]}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={getFillColor({ numOfSteps: arr.length, step: idx, isIdle: entry[0] === idleField })} stopOpacity={0.8} />
+                    <stop offset="95%" stopColor={getFillColor({ numOfSteps: arr.length, step: idx, isIdle: entry[0] === idleField })} stopOpacity={0} />
+                </linearGradient>)}
+        </defs>
+        <XAxis dataKey="ts"
+            name='Time'
+            hide={!detail}
+            tickFormatter={unixTime => new Date(unixTime).toLocaleTimeString()}></XAxis>
+        <YAxis hide={true}></YAxis>
+        <CartesianGrid strokeDasharray="3 3" />
+        <Tooltip content={data => getStatTooltip(data, classes)}
+            labelFormatter={t => new Date(t).toLocaleString()}></Tooltip>
+        {Object.entries(getChartValues(rawvalue))
+            .filter(entry => entry[1] !== undefined)
+            .sort((a, b) => sortStats({ name: a[0], chartValue: a[1] }, { name: b[0], chartValue: b[1] }))
+            .map((entry) =>
+                <Area
+                    key={entry[0]}
+                    isAnimationActive={statsAnimateChange}
+                    type="monotone"
+                    fillOpacity={1}
+                    fill={`url(#color${entry[0]})`}
+                    stroke={category === "Memory" ? theme.palette.taskManager.memoryColor : theme.palette.taskManager.strokeColor}
+                    dataKey={entry[0]}
+                    stackId="1" />)}
+    </AreaChart>;
+
+    const lineChart = <LineChart
+        data={lastStates}
+        height={detail ? 300 : 80}
+        width={detail ? 500 : 200}>
+        <defs>
+            {Object.entries(getChartValues(rawvalue))
+                .filter(entry => entry[1] !== undefined)
+                .map((entry, idx, arr) => <linearGradient key={`color${entry[0]}`} id={`color${entry[0]}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={getFillColor({ numOfSteps: arr.length, step: idx, isIdle: entry[0] === idleField })} stopOpacity={0.8} />
+                    <stop offset="95%" stopColor={getFillColor({ numOfSteps: arr.length, step: idx, isIdle: entry[0] === idleField })} stopOpacity={0} />
+                </linearGradient>)}
+        </defs>
+        <XAxis dataKey="ts"
+            name='Time'
+            hide={!detail}
+            tickFormatter={unixTime => new Date(unixTime).toLocaleTimeString()}></XAxis>
+        <YAxis hide={!detail}></YAxis>
+        <CartesianGrid strokeDasharray="3 3" />
+        <Tooltip content={data => getStatTooltip(data, classes)}
+            labelFormatter={t => new Date(t).toLocaleString()}></Tooltip>
+        {Object.entries(getChartValues(rawvalue))
+            .filter(entry => entry[1] !== undefined)
+            .sort((a, b) => sortStats({ name: a[0], chartValue: a[1] }, { name: b[0], chartValue: b[1] }))
+            .map((entry) =>
+                <Line
+                    key={entry[0]}
+                    isAnimationActive={statsAnimateChange}
+                    type="monotone"
+                    dot={detail}
+                    fillOpacity={1}
+                    fill={`url(#color${entry[0]})`}
+                    stroke={category === "Memory" ? theme.palette.taskManager.memoryColor : theme.palette.taskManager.strokeColor}
+                    dataKey={entry[0]}
+                    stackId="1" />)}
+    </LineChart>;
+
     return <Box className={classes.root}>
         {detail && <Box className={classes.header}>
             <Typography className={classes.headerLine} color="textPrimary" variant="subtitle1">{name} {headerFields && Object.values(headerFields).map(headerField=>
@@ -1319,41 +1491,7 @@ const ConfigPanel = withStyles(configStyle)(props => {
                     </ListItem>)}
             </List>
         </Box>}
-        <AreaChart 
-            data={lastStates}
-            height={detail ? 300 : 80}
-            width={detail ? 500 : 200}
-            stackOffset="expand">
-            <defs>
-                {Object.entries(getChartValues(rawvalue))
-                       .filter(entry => entry[1] !== undefined)
-                       .map((entry,idx,arr) => <linearGradient key={`color${entry[0]}`} id={`color${entry[0]}`} x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor={getFillColor({numOfSteps: arr.length, step: idx, isIdle: entry[0] === idleField})} stopOpacity={0.8}/>
-                                                <stop offset="95%" stopColor={getFillColor({numOfSteps: arr.length, step: idx, isIdle: entry[0] === idleField})} stopOpacity={0}/>
-                                              </linearGradient>)}
-            </defs>
-            <XAxis dataKey="ts"
-                   name='Time'
-                   hide={!detail}
-                   tickFormatter={unixTime => new Date(unixTime).toLocaleTimeString()}></XAxis>
-            <YAxis hide={true}></YAxis>
-            <CartesianGrid strokeDasharray="3 3"/>
-            {<Tooltip content={data => getStatTooltip(data, classes)}
-                     labelFormatter={t => new Date(t).toLocaleString()}></Tooltip>}
-            {Object.entries(getChartValues(rawvalue))
-                    .filter(entry => entry[1] !== undefined)
-                    .sort((a,b) => sortStats({name:a[0],chartValue:a[1]},{name:b[0],chartValue:b[1]}))
-                    .map((entry) => 
-                            <Area
-                                key={entry[0]}
-                                isAnimationActive={statsAnimateChange}
-                                type="monotone"
-                                fillOpacity={1} 
-                                fill={`url(#color${entry[0]})`}
-                                stroke={category === "Memory" ? theme.palette.taskManager.memoryColor : theme.palette.taskManager.strokeColor}
-                                dataKey={entry[0]}
-                                stackId="1"/>)}
-        </AreaChart>
+        {idleField?areaChart:lineChart}
     </Box>
 
     function sortStats(a, b) {
@@ -1538,7 +1676,7 @@ const ConfigPanel = withStyles(configStyle)(props => {
                                         statsAnimateChange={ statsAnimateChange.value }
                                         headerFields={ category[1][entry[0]].headerFields }
                                         ignored={ category[1][entry[0]].ignored || [] } />}
-                                    <AreaStat
+                                    <Chart
                                         key={`Area-${entry[0]}`}
                                         name={entry[0]}
                                         category={category[0]}

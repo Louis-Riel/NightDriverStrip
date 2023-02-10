@@ -307,12 +307,14 @@ class CWebServer
                 if (numEffects > 0) {
                     StartEffectsManager(effects,numEffects);
                     auto response = new AsyncJsonResponse(false, JSON_BUFFER_BASE_SIZE);
+                    response->addHeader("Access-Control-Allow-Origin", "*");
                     response->getRoot()["numEffects"] = numEffects;
                     response->setLength();
                     response->setCode(201);
                     request->send(response);
                 } else {
                     auto response = new AsyncJsonResponse(false, JSON_BUFFER_BASE_SIZE);
+                    response->addHeader("Access-Control-Allow-Origin", "*");
                     response->getRoot()["error"] = "no effects created from input";
                     response->setLength();
                     response->setCode(400);
@@ -322,6 +324,7 @@ class CWebServer
             else 
             {
                 auto response = new AsyncJsonResponse(false, JSON_BUFFER_BASE_SIZE);
+                response->addHeader("Access-Control-Allow-Origin", "*");
                 response->getRoot()["error"] = "invalid input format";
                 response->setLength();
                 response->setCode(400);

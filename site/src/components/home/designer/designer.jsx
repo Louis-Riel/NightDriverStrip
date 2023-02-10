@@ -1,6 +1,9 @@
 const DesignerPanel = withStyles(designStyle)(props => {
     const { classes, open, addNotification } = props;
     const [ effects, setEffects ] = useState(undefined);
+    const [ effectRequests, setEffectRequests ] = useState(JSON.parse(localStorage.getItem("effects")) || []);
+    const [ effectRequest, setEffectRequest ] = useState(undefined);
+    const [ effectRequestIdx, setEffectRequestIdx ] = useState(undefined);
     const [ abortControler, setAbortControler ] = useState(undefined);
     const [ nextRefreshDate, setNextRefreshDate] = useState(undefined);
     const [ editing, setEditing ] = useState(false);
@@ -22,7 +25,7 @@ const DesignerPanel = withStyles(designStyle)(props => {
     
             chipRequest(`${httpPrefix !== undefined ? httpPrefix : ""}/getEffectList`,{signal:aborter.signal})
                 .then(resp => resp.json())
-                .then(effects => effects && effects.Effects && setEffects(effects))
+                .then(effects => setEffects(effects))
                 .catch(err => addNotification("Error","Service","Get Effect List",err))
                 .finally(()=>clearTimeout(timer));
     
@@ -32,6 +35,20 @@ const DesignerPanel = withStyles(designStyle)(props => {
             }
         }
     },[open,nextRefreshDate]);
+
+    useEffect(() => {
+        localStorage.setItem("effects",JSON.stringify(effectRequests));
+        if (effectRequests.length) {
+            chipRequest(`${httpPrefix !== undefined ? httpPrefix : ""}/setEffectList`,{
+                body:JSON.stringify(effectRequests), 
+                method:"POST",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            }).catch(err => addNotification("Error","Service","Set Effect List",err))
+              .finally(()=>setNextRefreshDate(Date.now()));
+        }
+    },[effectRequests])
 
     const requestRefresh = () => setTimeout(()=>setNextRefreshDate(Date.now()),50);
 
@@ -119,17 +136,42 @@ const DesignerPanel = withStyles(designStyle)(props => {
                 label="Time Remaining"
                 requestRefresh={requestRefresh}
                 millisecondsRemaining={effects.millisecondsRemaining}/>
-            {(effects.Effects.length > 1) && <Box>
-                <IconButton disabled={requestRunning} onClick={()=>navigate(false)}><Icon>skip_previous</Icon></IconButton>
-                <IconButton disabled={requestRunning} onClick={()=>navigate(true)}><Icon>skip_next</Icon></IconButton>
+            <Box>
+                {effects.Effects && <IconButton disabled={requestRunning} onClick={()=>navigate(false)}><Icon>skip_previous</Icon></IconButton>}
+                {effects.Effects && <IconButton disabled={requestRunning} onClick={()=>navigate(true)}><Icon>skip_next</Icon></IconButton>}
                 <IconButton disabled={requestRunning} onClick={()=>setNextRefreshDate(Date.now())}><Icon>refresh</Icon></IconButton>
-            </Box>}
+                <IconButton onClick={()=>{
+                    setEffectRequest({});
+                    setEffectRequestIdx(undefined);
+                }}><Icon>add</Icon></IconButton>
+                <EffectBuilder 
+                        effectRequest={effectRequest} 
+                        setEffectRequest={setEffectRequest}
+                        onSave={()=>{
+                            if (effectRequestIdx !== undefined) {
+                                setEffectRequests(prevVal => prevVal.map((val,idx)=>idx === effectRequestIdx ? effectRequest : val) );
+                                setEffectRequestIdx(undefined);
+                            } else {
+                                setEffectRequests(prevVal => [...prevVal,effectRequest] );
+                            }
+                            setEffectRequest(undefined);
+                        }}
+                        onClose={()=>{
+                            setEffectRequest(undefined);
+                            setEffectRequestIdx(undefined);
+                        }}/>
+            </Box>
         </Box>
         <Box className={classes.effects}>
-            {effects.Effects.map((effect,idx) => <Effect 
+            {effects.Effects && effects.Effects.map((effect,idx) => <Effect 
                                                     key={`effect-${idx}`}
                                                     effect={effect} 
-                                                    effectIndex={idx} 
+                                                    effectIndex={idx}
+                                                    launchEditor={()=>{
+                                                        setEffectRequest(effectRequests[idx]);
+                                                        setEffectRequestIdx(idx);
+                                                    }}
+                                                    onDelete={()=>setEffectRequests(prevVal=>prevVal.filter((_val,idx2)=>idx !== idx2))}
                                                     navigateTo={navigateTo}
                                                     requestRunning={requestRunning}
                                                     effectEnable={effectEnable}

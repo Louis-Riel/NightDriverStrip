@@ -176,7 +176,7 @@ const StatsPanel = withStyles(statsStyle)(props => {
                                         statsAnimateChange={ statsAnimateChange.value }
                                         headerFields={ category[1][entry[0]].headerFields }
                                         ignored={ category[1][entry[0]].ignored || [] } />}
-                                    <AreaStat
+                                    <Chart
                                         key={`Area-${entry[0]}`}
                                         name={entry[0]}
                                         category={category[0]}
