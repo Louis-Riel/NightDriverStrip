@@ -109,7 +109,7 @@ export const Effect = withStyles(({ effectInterval, millisecondsRemaining, selec
                 {selected?<Box className={classes.line}>
                     <Box className={classes.effectName}>
                         <Checkbox checked={fullEffect.enabled} onChange={()=>service.emit("toggleEffect", effect)} />
-                        <img style={{height: 60}} src={fullEffect.options.tile.value}/>
+                        <img alt="Effect Tile" style={{height: 60}} src={fullEffect.options.tile.value}/>
                     </Box>
                     <Typography>{fullEffect.name}</Typography>
                     <Box>
@@ -119,9 +119,9 @@ export const Effect = withStyles(({ effectInterval, millisecondsRemaining, selec
                     <Box  className={classes.effectDetail}>
                         <Checkbox checked={fullEffect.enabled} onChange={()=>service.emit("toggleEffect", effect)} />
                         <Box className={classes.effectName}>
-                            <img style={{height: 60}} src={fullEffect.options.tile.value}/>
+                            <img alt="Effect Tile" style={{height: 60}} src={fullEffect.options.tile.value}/>
                             <Typography>{fullEffect.name}</Typography>
-                            <IconButton onClick={()=>setDOpen(true)}><Icon>settings</Icon></IconButton>
+                            <IconButton aria-label="Effect Setting" onClick={()=>setDOpen(true)}><Icon>settings</Icon></IconButton>
                         </Box>
                     </Box>
                     <Box className={classes.listButtons}>
