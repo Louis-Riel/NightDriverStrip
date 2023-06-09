@@ -63,10 +63,13 @@ export const DesignerPanel = withStyles((props:IDesignerPanelProps) => {
 
     useEffect(() => {
         if (props.open) {
+            const nextTick = effectTimeRemaining < 100 ? (effectTimeRemaining ? 300 : 3000) : (effectTimeRemaining+500) * 0.75;
             const timer = setTimeout(()=>{
                 service.emit("refreshEffectList");
-                setNextRefreshDate(Date.now());
-            },effectTimeRemaining < 100 ? 300 : (effectTimeRemaining+500) * 0.75);
+                if (nextTick + nextRefreshDate <= Date.now()) {
+                    setNextRefreshDate(Date.now());                    
+                }
+            },nextTick);
 
             return () => clearTimeout(timer);
         }
