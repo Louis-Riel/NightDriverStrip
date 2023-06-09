@@ -16,3 +16,4 @@ WebInstaller/web_projects.json
 site/package-lock.json
 site/yarn.lock
 site/dist
+site/src/espaddr.tsx
