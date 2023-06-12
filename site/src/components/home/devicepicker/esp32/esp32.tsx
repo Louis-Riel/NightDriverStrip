@@ -1,12 +1,13 @@
 import { Icon, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { eventManager } from "../../../../services/eventManager/eventmanager";
-import { safeJsonParse } from "../../../../utils/jsonparse";
+import { safeJsonParse, ParseResult } from '../../../../utils/jsonparse';
 import { INightDriverConfiguration, INightDriverConfigurationSpecs } from '../../../../models/config/nightdriver/nightdriver';
 import { IEffects } from "../../../../models/config/nightdriver/effects";
 import { IESPState } from "../../../../models/stats/espstate";
 import { withStyles } from 'tss-react/mui';
 import { esp32Style } from "./style"
+import { BehaviorSubject, Observable, catchError, from, map, mergeMap, of, retry, tap, timer } from 'rxjs';
 
 interface IEsp32Props {
     activeHttpPrefix:string, 
@@ -19,6 +20,9 @@ export const Esp32 = withStyles(({activeHttpPrefix, selected, classes}:IEsp32Pro
     const [configSpec, setConfigSpec] = useState(undefined as unknown as INightDriverConfigurationSpecs[]);
     const [effects, setEffects ] = useState(undefined as unknown as IEffects);
     const [service] = useState(eventManager());
+    const effectListRefresh = new BehaviorSubject(0);
+    const statsRefresh = new BehaviorSubject(0);
+    const newConfig = new BehaviorSubject(undefined as unknown as INightDriverConfiguration);
 
     const chipRequest = (url:string,options:RequestInit,operation:string):Promise<Response> =>
         new Promise<Response>((resolve,_reject) => {
@@ -31,42 +35,52 @@ export const Esp32 = withStyles(({activeHttpPrefix, selected, classes}:IEsp32Pro
                 .finally(()=>clearTimeout(timer));
         });
 
-    useEffect(() => {
-        if (selected) {
-            chipRequest(`/settings`,{method: "GET"},"Get Chip Setting")
-                .then(resp => resp.text())
-                .then(safeJsonParse<INightDriverConfiguration>())
-                .then(cfg=>!cfg.hasError && setConfig({...cfg.parsed }))
-                .then(()=>chipRequest(`/settings/specs`,{method:"GET"},"Get Chip Option Specs")
-                    .then(resp => resp.text())
-                    .then(safeJsonParse<INightDriverConfigurationSpecs[]>())
-                    .then(cs=>!cs.hasError&&setConfigSpec([...cs.parsed])))
-                .catch(console.error);
-            let subs = {
-                changeConfigSub : service.subscribe("SetChipConfig", (newConfig:INightDriverConfiguration) => {
-                    const formData = new FormData();
-                    Object.entries(newConfig).forEach(entry=>formData.append(entry[0],entry[1]));
-                    chipRequest(`/settings`,{method: "POST", body:formData},"Set Chip Config")
-                        .then(resp => resp.text())
-                        .then(safeJsonParse<INightDriverConfiguration>())
-                        .then(cfg=>!cfg.hasError&&setConfig({...cfg.parsed}))
-                        .then(()=>service.emit("refreshEffectList"))
-                        .catch(console.error)}),
-                effectList: service.subscribe("refreshEffectList",()=> 
-                    chipRequest(`/effects`,{method:"GET"},"Get Effects")
-                    .then(resp => resp.text())
-                    .then(safeJsonParse<IEffects>())
-                    .then(effects=>!effects.hasError&&setEffects({...effects.parsed}))),
-                statsRefresh: service.subscribe("refreshStatistics",() => 
-                    chipRequest(`/statistics`,{method:"GET"},"Update Stats")
-                        .then(resp => resp.text())
-                        .then(safeJsonParse<IESPState>())
-                        .then(stats=>!stats.hasError&&service.emit("statistics",stats.parsed))),
-            };
+    function chipJsonRequest<T>(url:string,options:RequestInit,operation:string,retryTime:number,trigger:Observable<any>):Observable<T>{
+        return from(trigger).pipe(
+            mergeMap(()=>chipRequest(url, options, operation)),
+            mergeMap((res:Response) => res.text()),
+            map(safeJsonParse<T>()),
+            tap((res:ParseResult<T>) =>{throw new Error(res.error as string)}),
+            catchError((err)=>{
+                service.emit("Error",{level:"error",type:"JSON",target:operation,notification:err.message});
+                return undefined as unknown as Observable<any>; //undefined means retry/., 
+            }),
+            retry({delay:(_err,_retryCount)=>timer(retryTime)})
+        );
+    }
 
-            return () => Object.values(subs).forEach(service.unsubscribe);
+    const prevSelected = useRef<boolean>(false);
+    
+    useEffect(() => {
+        if (prevSelected.current != selected) {
+            prevSelected.current = selected;
+            if (selected) {
+                let subs = {
+                    configSub: chipJsonRequest<INightDriverConfiguration>(`/settings`,{method: "GET"},"Get Chip Setting",3000,of(0))
+                                    .subscribe({next: setConfig}),
+                    configSpecSub: chipJsonRequest<INightDriverConfigurationSpecs[]>(`/settings/specs`,{method: "GET"},"Get Chip Option Specs",3000,of(0))
+                                    .subscribe({next: setConfigSpec}),
+                    effectsSub: chipJsonRequest<IEffects>(`/effects`,{method: "GET"},"Get Effects",3000, effectListRefresh)
+                                    .subscribe({next: setEffects}),
+                    statusSub: chipJsonRequest<IESPState>(`/statistics`,{method: "GET"},"Update Stats",3000, statsRefresh)
+                                    .subscribe({next: (effects)=>service.emit("statistics",effects)}),
+                    configUpdate: newConfig.subscribe({next:(cfg)=>{
+                        if (cfg) {
+                            const formData = new FormData();
+                            Object.entries(cfg).forEach(entry=>formData.append(entry[0],entry[1]));
+                            chipJsonRequest<INightDriverConfiguration>(`/settings`,{method: "POST", body:formData},"Set Chip Config",3000,of(0))
+                                .subscribe({next:setConfig});
+                        }
+                    }}),
+                    effectRefresh: service.subscribe("refreshEffectList",effectListRefresh.next),
+                    statsRefresh: service.subscribe("refreshStatistics",statsRefresh.next),
+                    updateConfig: service.subscribe("SetChipConfig",newConfig.next),
+                };
+
+                return () => Object.values(subs).forEach(service.unsubscribe);
+            }
         }
-    }, [service,selected]);
+    }, [selected]);
 
     useEffect(() => {
         if (effects&&selected) {

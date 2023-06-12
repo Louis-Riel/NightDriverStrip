@@ -4,8 +4,12 @@ function defaultValidator<T>(o:any): o is T {
 
 export function safeJsonParse<T>(guard: (o: any) => o is T = defaultValidator) {
   return (text: string): ParseResult<T> => {
-    const parsed = JSON.parse(text)
-    return guard(parsed) ? { parsed, hasError: false } : { hasError: true }
+    try{
+      const parsed = JSON.parse(text)
+      return guard(parsed) ? { parsed, hasError: false } : { hasError: true }
+    } catch(error) {
+      return {hasError:true,error,parsed:undefined}
+    }
   }
 }
 

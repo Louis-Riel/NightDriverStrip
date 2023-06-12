@@ -1,4 +1,4 @@
-import { Typography, ListItem, Paper, Box, Checkbox, CircularProgress, IconButton, Icon, Dialog, DialogTitle, DialogContent, DialogContentText, TextField, DialogActions, Button, Card, CardHeader, Avatar, CardContent } from "@mui/material";
+import { Typography, ListItem, Paper, Box, Checkbox, CircularProgress, IconButton, Icon, Dialog, DialogTitle, DialogContent, DialogContentText, TextField, DialogActions, Button, Card, CardHeader, Avatar, CardContent, Skeleton } from "@mui/material";
 import { useState, useEffect, useMemo } from "react";
 import { withStyles } from "tss-react/mui";
 import { IEffects } from "../../../../models/config/nightdriver/effects";
@@ -77,7 +77,7 @@ export const Effect = withStyles(({ effectInterval, millisecondsRemaining, selec
     },[millisecondsRemaining,selected]);
 
     if (!fullEffect) {
-        return <Typography>Loading...</Typography>
+        return <Typography><Skeleton/></Typography>
     }
 
     switch (displayMode) {

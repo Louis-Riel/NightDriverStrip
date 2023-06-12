@@ -1,4 +1,4 @@
-import { List, ListItem, ListItemText, Typography, Divider } from "@mui/material";
+import { List, ListItem, ListItemText, Typography, Divider, Box, Skeleton } from "@mui/material";
 import { useState, useEffect } from "react";
 import { eventManager } from "../../services/eventManager/eventmanager";
 import { ChipConfigItem } from "./chipconfigItem";
@@ -27,10 +27,6 @@ export const ConfigPanel = withStyles(({classes}:IConfigPanelProps) => {
     return ()=>{Object.values(subs).forEach(service.unsubscribe)};
   },[service]);
 
-  if (siteConfig === undefined) {
-    return <div>Loading...</div>
-  }
-
   return (
     <List className={classes.configsection}>
       <ListItem className={classes.configsection}>
@@ -40,7 +36,11 @@ export const ConfigPanel = withStyles(({classes}:IConfigPanelProps) => {
                                         key={entry[0]}
                                         id={entry[0]}
                                         value={entry[1]}
-                                        {...chipConfigSpec.find(cs=>cs.name===entry[0]) as INightDriverConfigurationSpecs}/>):<div>Loading...</div>}
+                                        {...chipConfigSpec.find(cs=>cs.name===entry[0]) as INightDriverConfigurationSpecs}/>):<Box>
+                                            <Skeleton variant="text"/>                
+                                            <Skeleton variant="text"/>                
+                                            <Skeleton variant="text"/>                
+                                        </Box>}
       </ListItem>
       <ListItem className={classes.configsection}>
         <ListItemText><Typography variant="overline" color="textSecondary">Site</Typography></ListItemText>
@@ -49,7 +49,11 @@ export const ConfigPanel = withStyles(({classes}:IConfigPanelProps) => {
                                                                 key={entry[0]}
                                                                 id={entry[0]}
                                                                 typeName={entry[1].type}
-                                                                {...entry[1]}/>):<div>Loading...</div>}
+                                                                {...entry[1]}/>):<Box>
+                                                                    <Skeleton variant="text"/>                
+                                                                    <Skeleton variant="text"/>                
+                                                                    <Skeleton variant="text"/>                
+                                                                </Box>}
       </ListItem>
     </List>
   );

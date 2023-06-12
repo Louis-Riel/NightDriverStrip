@@ -1,4 +1,4 @@
-const notificationsStyle = theme => ({
+export const notificationsStyle = theme => ({
     root: {
     },
     popup: {

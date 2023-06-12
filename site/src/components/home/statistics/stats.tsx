@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, Accordion, AccordionSummary, Icon, Typography, AccordionDetails } from "@mui/material";
+import { Box, Card, CardContent, Accordion, AccordionSummary, Icon, Typography, AccordionDetails, Skeleton } from "@mui/material";
 import { useState, useEffect } from "react";
 import { eventManager } from "../../../services/eventManager/eventmanager";
 import { ICHIP, ICODE, IConvertedStat, IStatSpec } from "../../../models/stats/espstate";
@@ -131,14 +131,9 @@ export const StatsPanel = withStyles(({ open, smallScreen, classes }:IStatsPanel
         }
     },[siteConfig, lastRefreshDate, open]);
 
-    if ((!statistics || !siteConfig) && open) {
-        return <Box>Loading...</Box>
-    }
-
-    return statistics && siteConfig && 
-    <Card variant="outlined" className={`${!open && classes.hidden}`}>
+    return <Card variant="outlined" className={`${!open && classes.hidden}`}>
         <CardContent className={Object.values(openedCategories).some(category => category)?classes.contentDetails:(smallScreen?classes.contentSummarySmall:classes.contentSummaryBig)}>
-            {Object.entries(statistics).map(category =>
+            {statistics ? Object.entries(statistics).map(category =>
                 <Accordion key={category[0]}
                            expanded={openedCategories[category[0]]} 
                            onChange={()=>setOpenedCategories(prev => {return {...prev,[category[0]]:!openedCategories[category[0]]}})}>
@@ -199,7 +194,10 @@ export const StatsPanel = withStyles(({ open, smallScreen, classes }:IStatsPanel
                             </Box>)}
                         </Box>
                     </AccordionDetails>
-                </Accordion>)}
+                </Accordion>):<Box display={"flex"} sx={{columnGap:5}}>{[1,2,3,4].map(val=><Box key={val}>
+                    <Skeleton />                
+                    <Skeleton variant="rectangular" width={80}/></Box>)}                
+                </Box>}
         </CardContent>
     </Card>
 },statsStyle);

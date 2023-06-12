@@ -4,7 +4,7 @@ import { eventManager } from "../../services/eventManager/eventmanager";
 
 interface ISiteConfigItemProps { 
     name:string;
-    value:string|number|Boolean;
+    value:string|number|boolean;
     typeName:string;
     id:string;
 }

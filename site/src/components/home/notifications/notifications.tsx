@@ -1,6 +1,8 @@
 import { Box, Icon, CardContent, Typography, IconButton, Badge, Popover, Card, CardHeader, Avatar, CardActions } from "@mui/material";
 import React, { useState, useEffect } from "react";
 import { eventManager } from "../../../services/eventManager/eventmanager";
+import { withStyles } from "tss-react/mui";
+import { notificationsStyle } from "./style";
 
 interface INotification {
     date: Date,
@@ -14,7 +16,7 @@ interface INotificationGroup {
     notifications: Array<INotification>;
 }
 
-export function NotificationPanel() {
+export const NotificationPanel = withStyles(({classes})=>{
     const [service] = useState(eventManager());
 
     const [notifications, setNotifications] = React.useState([] as INotificationGroup[]);
@@ -78,18 +80,17 @@ export function NotificationPanel() {
                                        .filter(notif => notif[1].target === target[0])
                                        .map(error =>
                                 <Box key={error[0]}>
-                                    <Box key="header">
+                                    <Box key="header" className={classes.errorHeader}>
                                         <Typography>{`${target[0]}`}</Typography>
                                         <Typography color="textSecondary">{error[1].type}</Typography>
                                         <Typography>{error[1].level}</Typography>
                                     </Box>
-                                    <Box key="errors">
+                                    <Box key="errors" className={classes.errors}>
                                         {Object.entries(error[1].notifications.reduce((ret,error) => {return {...ret,[error.notification]:(ret[error.notification]||0)+1}},{}))
                                                 .map(entry => <Typography key={entry[1] as string} variant="subtitle1">{`${entry[1]}X ${entry[0]}`}</Typography>)
                                         }
                                     </Box>
-                                </Box>
-                                       )}
+                                </Box>)}
                             </CardContent>
                         )}
                     </CardContent>
@@ -101,4 +102,4 @@ export function NotificationPanel() {
                 </Card>
             </Popover>
         </Box>:<div></div>);
-}
+},notificationsStyle);
