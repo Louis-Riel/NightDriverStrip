@@ -1,13 +1,14 @@
 import { Box, Card, CardContent, Accordion, AccordionSummary, Icon, Typography, AccordionDetails, Skeleton } from "@mui/material";
 import { useState, useEffect } from "react";
-import { eventManager } from "../../../services/eventManager/eventmanager";
 import { ICHIP, ICODE, IConvertedStat, IStatSpec } from "../../../models/stats/espstate";
-import { ISiteConfig } from "../../../models/config/site/siteconfig";
 import { StaticStatsPanel } from "./static/static";
 import { AreaStat } from "./areachart/areachart";
 import { BarStat } from "./barchart/barchart";
 import { withStyles } from 'tss-react/mui';
 import { statsStyle } from "./style";
+import { IEffectSettings } from "../../../models/config/site/siteconfig";
+import { Esp32Service } from "../../../services/esp32/esp32";
+import { SiteConfigManager } from "../../../services/siteconfig/siteconfig";
 
 interface IStatsPanelProps { 
     open: boolean;
@@ -16,10 +17,12 @@ interface IStatsPanelProps {
 }
 
 export const StatsPanel = withStyles(({ open, smallScreen, classes }:IStatsPanelProps) => {
-    const [siteConfig, setSiteConfig] = useState({} as ISiteConfig);
-    const [service] = useState(eventManager());
+    const [espService] = useState(Esp32Service(["IEffects","IESPState"]));
+    const [siteConfigService] = useState(SiteConfigManager());
 
+    const [ siteConfig, setSiteConfig] = useState({} as IEffectSettings);
     const [ statistics, setStatistics] = useState(undefined as unknown as IConvertedStat);
+
     const [ timer, setTimer ] = useState(undefined as unknown as any);
     const [ lastRefreshDate, setLastRefreshDate] = useState(undefined as unknown as number);
     const [ openedCategories, setOpenedCategories ] = useState({
@@ -28,104 +31,27 @@ export const StatsPanel = withStyles(({ open, smallScreen, classes }:IStatsPanel
         Memory: false,
         NightDriver: false
     });
-    useEffect(() => {
-        const subs={
-            siteConfig:service.subscribe("SiteConfig",setSiteConfig),
-            stats:service.subscribe("statistics",stats=>{setStatistics(toGraphData(stats))})
-        };
-        function toGraphData(stats):IConvertedStat {
-            return {
-                CPU: {
-                    CPU: {
-                        stat: {
-                            CORE0: stats.CPU_USED_CORE0,
-                            CORE1: stats.CPU_USED_CORE1,
-                            IDLE: ((200.0 - stats.CPU_USED_CORE0 - stats.CPU_USED_CORE1) / 200) * 100.0,
-                            USED: stats.CPU_USED
-                        },
-                        idleField: "IDLE",
-                        ignored: ["USED"],
-                        headerFields: ["USED"]
-                    }
-                },
-                Memory: {
-                    HEAP: {
-                        stat: {
-                            USED: stats.HEAP_SIZE - stats.HEAP_FREE,
-                            FREE: stats.HEAP_FREE,
-                            MIN: stats.HEAP_MIN,
-                            SIZE: stats.HEAP_SIZE
-                        },
-                        idleField: "FREE",
-                        headerFields: ["SIZE", "MIN"],
-                        ignored: ["SIZE", "MIN"]
-                    },
-                    DMA: {
-                        stat: {
-                            USED: stats.DMA_SIZE - stats.DMA_FREE,
-                            FREE: stats.DMA_FREE,
-                            MIN: stats.DMA_MIN,
-                            SIZE: stats.DMA_SIZE
-                        },
-                        idleField: "FREE",
-                        headerFields: ["SIZE", "MIN"],
-                        ignored: ["SIZE", "MIN"]
-                    },
-                    PSRAM: {
-                        stat: {
-                            USED: stats.PSRAM_SIZE - stats.PSRAM_FREE,
-                            FREE: stats.PSRAM_FREE,
-                            MIN: stats.PSRAM_MIN,
-                            SIZE: stats.PSRAM_SIZE
-                        },
-                        idleField: "FREE",
-                        headerFields: ["SIZE", "MIN"],
-                        ignored: ["SIZE", "MIN"]
-                    },
-                },
-                NightDriver: {
-                    FPS: {
-                        stat: {
-                            LED: stats.LED_FPS,
-                            SERIAL: stats.SERIAL_FPS,
-                            AUDIO: stats.AUDIO_FPS
-                        }
-                    },
-                },
-                Package: {
-                    CHIP: {
-                        stat: {
-                            MODEL: stats.CHIP_MODEL,
-                            CORES: stats.CHIP_CORES,
-                            SPEED: stats.CHIP_SPEED,
-                            PROG_SIZE: stats.PROG_SIZE
-                        },
-                        static: true,
-                        headerFields: ["MODEL"]
-                    },
-                    CODE: {
-                        stat: {
-                            SIZE: stats.CODE_SIZE,
-                            FREE: stats.CODE_FREE,
-                            FLASH_SIZE: stats.FLASH_SIZE
-                        },
-                        static: true,
-                        headerFields: ["SIZE"]
-                    },
-                },
-            };
-        }
 
-        return ()=>Object.values(subs).forEach(service.unsubscribe);
-    }, [service]);
+    useEffect(() => {        
+        const subs={
+            stats:espService.configStores.get("IESPState")?.subscribe({next:ccs=>ccs&&setStatistics(toGraphData(ccs))})
+        };
+
+        return ()=>Object.values(subs).forEach(sub=>sub?.unsubscribe());
+    }, [espService]);
+
+    useEffect(() => {        
+        const subs={
+            siteConfig: siteConfigService.subscribe({next:val=>setSiteConfig(val)}),
+        };
+
+        return ()=>Object.values(subs).forEach(sub=>sub?.unsubscribe());
+    }, [siteConfigService]);
 
     useEffect(() => {
         if (open) {
-            service.emit("refreshStatistics");
-
-            if (siteConfig && (siteConfig.statsRefreshRate.value >= 0)) {
-                setTimer(setTimeout(() => {setLastRefreshDate(Date.now())},siteConfig.statsRefreshRate.value*1000));
-            }
+            espService.refresh("IESPState");
+            setTimer(setTimeout(() => {setLastRefreshDate(Date.now())},((siteConfig?.statsRefreshRate?.value as number)||3)*1000));
 
             return () => {timer && clearTimeout(timer)};
         }
@@ -151,7 +77,7 @@ export const StatsPanel = withStyles(({ open, smallScreen, classes }:IStatsPanel
                                             detail={openedCategories[category[0]]}
                                             rawvalue={(entry[1] as IStatSpec).stat}
                                             idleField={ category[1][entry[0]].idleField }
-                                            statsAnimateChange={ siteConfig.statsAnimateChange.value }
+                                            statsAnimateChange={ siteConfig?.statsAnimateChange?.value as boolean }
                                             ignored={ category[1][entry[0]].ignored || [] } />)}
                             </Box>}
                         </Box>
@@ -178,16 +104,16 @@ export const StatsPanel = withStyles(({ open, smallScreen, classes }:IStatsPanel
                                         detail={openedCategories[category[0]]}
                                         rawvalue={(entry[1] as IStatSpec).stat}
                                         idleField={ category[1][entry[0]].idleField }
-                                        statsAnimateChange={ siteConfig.statsAnimateChange.value }
+                                        statsAnimateChange={ siteConfig?.statsAnimateChange?.value as boolean }
                                         ignored={ category[1][entry[0]].ignored || [] } />}
                                     <AreaStat
                                         key={`Area-${entry[0]}`}
                                         name={entry[0]}
                                         category={category[0]}
                                         detail={openedCategories[category[0]]}
-                                        statsAnimateChange={ siteConfig.statsAnimateChange.value }
+                                        statsAnimateChange={ siteConfig?.statsAnimateChange?.value as boolean }
                                         rawvalue={(entry[1] as IStatSpec).stat}
-                                        maxSamples={ siteConfig.maxSamples.value }
+                                        maxSamples={ siteConfig?.maxSamples?.value as number }
                                         idleField={ category[1][entry[0]].idleField }
                                         headerFields={ category[1][entry[0]].headerFields }
                                         ignored={ category[1][entry[0]].ignored || [] } />
@@ -200,5 +126,88 @@ export const StatsPanel = withStyles(({ open, smallScreen, classes }:IStatsPanel
                 </Box>}
         </CardContent>
     </Card>
+
+    function toGraphData(stats):IConvertedStat {
+        return {
+            CPU: {
+                CPU: {
+                    stat: {
+                        CORE0: stats.CPU_USED_CORE0,
+                        CORE1: stats.CPU_USED_CORE1,
+                        IDLE: ((200.0 - stats.CPU_USED_CORE0 - stats.CPU_USED_CORE1) / 200) * 100.0,
+                        USED: stats.CPU_USED
+                    },
+                    idleField: "IDLE",
+                    ignored: ["USED"],
+                    headerFields: ["USED"]
+                }
+            },
+            Memory: {
+                HEAP: {
+                    stat: {
+                        USED: stats.HEAP_SIZE - stats.HEAP_FREE,
+                        FREE: stats.HEAP_FREE,
+                        MIN: stats.HEAP_MIN,
+                        SIZE: stats.HEAP_SIZE
+                    },
+                    idleField: "FREE",
+                    headerFields: ["SIZE", "MIN"],
+                    ignored: ["SIZE", "MIN"]
+                },
+                DMA: {
+                    stat: {
+                        USED: stats.DMA_SIZE - stats.DMA_FREE,
+                        FREE: stats.DMA_FREE,
+                        MIN: stats.DMA_MIN,
+                        SIZE: stats.DMA_SIZE
+                    },
+                    idleField: "FREE",
+                    headerFields: ["SIZE", "MIN"],
+                    ignored: ["SIZE", "MIN"]
+                },
+                PSRAM: {
+                    stat: {
+                        USED: stats.PSRAM_SIZE - stats.PSRAM_FREE,
+                        FREE: stats.PSRAM_FREE,
+                        MIN: stats.PSRAM_MIN,
+                        SIZE: stats.PSRAM_SIZE
+                    },
+                    idleField: "FREE",
+                    headerFields: ["SIZE", "MIN"],
+                    ignored: ["SIZE", "MIN"]
+                },
+            },
+            NightDriver: {
+                FPS: {
+                    stat: {
+                        LED: stats.LED_FPS,
+                        SERIAL: stats.SERIAL_FPS,
+                        AUDIO: stats.AUDIO_FPS
+                    }
+                },
+            },
+            Package: {
+                CHIP: {
+                    stat: {
+                        MODEL: stats.CHIP_MODEL,
+                        CORES: stats.CHIP_CORES,
+                        SPEED: stats.CHIP_SPEED,
+                        PROG_SIZE: stats.PROG_SIZE
+                    },
+                    static: true,
+                    headerFields: ["MODEL"]
+                },
+                CODE: {
+                    stat: {
+                        SIZE: stats.CODE_SIZE,
+                        FREE: stats.CODE_FREE,
+                        FLASH_SIZE: stats.FLASH_SIZE
+                    },
+                    static: true,
+                    headerFields: ["SIZE"]
+                },
+            },
+        };
+    }
 },statsStyle);
 

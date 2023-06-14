@@ -1,15 +1,7 @@
-export interface ISiteConfig {
-  [key: string]: {
-    name: string;
-    value: any;
-    type: string;
-  };
-}
-
 export interface IEffectOption {
 	name: string;
 	typeName: string;
-	value: string;
+	value: string|number|boolean;
 }
 
 export interface IEffectSettings {

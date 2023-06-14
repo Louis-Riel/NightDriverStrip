@@ -1,5 +1,5 @@
 import { Icon, Typography } from "@mui/material";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react';
 import { eventManager } from "../../../../services/eventManager/eventmanager";
 import { safeJsonParse, ParseResult } from '../../../../utils/jsonparse';
 import { INightDriverConfiguration, INightDriverConfigurationSpecs } from '../../../../models/config/nightdriver/nightdriver';
@@ -19,10 +19,14 @@ export const Esp32 = withStyles(({activeHttpPrefix, selected, classes}:IEsp32Pro
     const [config, setConfig] = useState(undefined as unknown as INightDriverConfiguration);
     const [configSpec, setConfigSpec] = useState(undefined as unknown as INightDriverConfigurationSpecs[]);
     const [effects, setEffects ] = useState(undefined as unknown as IEffects);
+    const [stats, setStats ] = useState(undefined as unknown as IESPState);
     const [service] = useState(eventManager());
     const effectListRefresh = new BehaviorSubject(0);
     const statsRefresh = new BehaviorSubject(0);
-    const newConfig = new BehaviorSubject(undefined as unknown as INightDriverConfiguration);
+    const [configStore, setConfigStore] = useState(undefined as unknown as BehaviorSubject<INightDriverConfiguration>);
+    const [configSpecStore, setConfigSpecStore] = useState(undefined as unknown as BehaviorSubject<INightDriverConfigurationSpecs[]>);
+    const [effectsStore, setEffectsStore] = useState(undefined as unknown as BehaviorSubject<IEffects>);
+    const [statsStore, setStatsStore] = useState(undefined as unknown as BehaviorSubject<IESPState>);
 
     const chipRequest = (url:string,options:RequestInit,operation:string):Promise<Response> =>
         new Promise<Response>((resolve,_reject) => {
@@ -40,7 +44,8 @@ export const Esp32 = withStyles(({activeHttpPrefix, selected, classes}:IEsp32Pro
             mergeMap(()=>chipRequest(url, options, operation)),
             mergeMap((res:Response) => res.text()),
             map(safeJsonParse<T>()),
-            tap((res:ParseResult<T>) =>{throw new Error(res.error as string)}),
+            tap((res:ParseResult<T>) =>{if (res.hasError) throw new Error(res.error as string)}),
+            map((res:ParseResult<T>)=>res.parsed as T),
             catchError((err)=>{
                 service.emit("Error",{level:"error",type:"JSON",target:operation,notification:err.message});
                 return undefined as unknown as Observable<any>; //undefined means retry/., 
@@ -50,56 +55,72 @@ export const Esp32 = withStyles(({activeHttpPrefix, selected, classes}:IEsp32Pro
     }
 
     const prevSelected = useRef<boolean>(false);
-    
-    useEffect(() => {
-        if (prevSelected.current != selected) {
-            prevSelected.current = selected;
-            if (selected) {
-                let subs = {
-                    configSub: chipJsonRequest<INightDriverConfiguration>(`/settings`,{method: "GET"},"Get Chip Setting",3000,of(0))
-                                    .subscribe({next: setConfig}),
-                    configSpecSub: chipJsonRequest<INightDriverConfigurationSpecs[]>(`/settings/specs`,{method: "GET"},"Get Chip Option Specs",3000,of(0))
-                                    .subscribe({next: setConfigSpec}),
-                    effectsSub: chipJsonRequest<IEffects>(`/effects`,{method: "GET"},"Get Effects",3000, effectListRefresh)
-                                    .subscribe({next: setEffects}),
-                    statusSub: chipJsonRequest<IESPState>(`/statistics`,{method: "GET"},"Update Stats",3000, statsRefresh)
-                                    .subscribe({next: (effects)=>service.emit("statistics",effects)}),
-                    configUpdate: newConfig.subscribe({next:(cfg)=>{
-                        if (cfg) {
-                            const formData = new FormData();
-                            Object.entries(cfg).forEach(entry=>formData.append(entry[0],entry[1]));
-                            chipJsonRequest<INightDriverConfiguration>(`/settings`,{method: "POST", body:formData},"Set Chip Config",3000,of(0))
-                                .subscribe({next:setConfig});
-                        }
-                    }}),
-                    effectRefresh: service.subscribe("refreshEffectList",effectListRefresh.next),
-                    statsRefresh: service.subscribe("refreshStatistics",statsRefresh.next),
-                    updateConfig: service.subscribe("SetChipConfig",newConfig.next),
-                };
 
-                return () => Object.values(subs).forEach(service.unsubscribe);
-            }
+    useEffect(()=>{
+        if (!configStore && (selected &&!prevSelected.current)) {
+            setConfigStore(service.setPropertyStore("INightDriverConfiguration", new BehaviorSubject<INightDriverConfiguration>(undefined as unknown as INightDriverConfiguration)));
+            setConfigSpecStore(service.setPropertyStore("INightDriverConfigurationSpecs", new BehaviorSubject<INightDriverConfigurationSpecs[]>(undefined as unknown as INightDriverConfigurationSpecs[])));
+            setEffectsStore(service.setPropertyStore("IEffects", new BehaviorSubject<IEffects>(undefined as unknown as IEffects)));
+            setStatsStore(service.setPropertyStore("IESPState", new BehaviorSubject<IESPState>(undefined as unknown as IESPState)));    
         }
-    }, [selected]);
+        prevSelected.current=selected;  
+    },[service,selected]);
+
+    useEffect(() => {
+        if (configSpecStore) {
+            prevSelected.current=selected;  
+            let subs = {
+                configStoreSub: configSpecStore.subscribe({next:(val)=>{
+                    if (val === undefined) {
+                        chipJsonRequest<INightDriverConfiguration>(`/settings`,{method: "GET"},"Get Chip Option Specs",3000,of(0))
+                                .subscribe({next: setConfig})
+                    }
+                }}),
+                configSpecStoreSub: configSpecStore.subscribe({next:(val)=>{
+                    if (val === undefined) {
+                        chipJsonRequest<INightDriverConfigurationSpecs[]>(`/settings/specs`,{method: "GET"},"Get Chip Option Specs",3000,of(0))
+                                .subscribe({next: setConfigSpec})
+                    }
+                }}),
+                effectStoreSub: effectsStore.subscribe({next:(val)=>{
+                    if (val === undefined) {
+                        chipJsonRequest<IEffects>(`/effects`,{method: "GET"},"Get Effects",3000, effectListRefresh)
+                                .subscribe({next: setEffects});
+                    }
+                }}),
+                statStoreSub: statsStore.subscribe({next:(val)=>{
+                    if (val === undefined) {
+                        chipJsonRequest<IESPState>(`/statistics`,{method: "GET"},"Update Stats",3000, statsRefresh)
+                                .subscribe({next: setStats})
+                    }
+                }}),
+            };
+
+            return () => Object.values(subs).forEach(service.unsubscribe);
+        }
+    }, [configSpecStore]);
 
     useEffect(() => {
         if (effects&&selected) {
-            service.emit("effectList", effects);
-
+            effectsStore.next(effects);
             let subs = {
-                subscribers: service.subscribe("subscription",sub=>{
-                    service.emit("effectList",effects,sub.eventId);}),
+                updateConfig: service.subscribe("SetChipConfig", (cfg:INightDriverConfiguration)=> {
+                    const formData = new FormData();
+                    Object.entries(cfg).forEach(entry=>formData.append(entry[0],entry[1]));
+                    chipJsonRequest(`/settings`,{method: "POST", body:formData},"Set Chip Config",3000,of(0))
+                        .subscribe({next:cfg=>setConfig(cfg as INightDriverConfiguration)})
+                }),
                 navigate: service.subscribe("navigate", (up)=> 
                     chipRequest(`/${up ? "nextEffect" : "previousEffect"}`,{method:"POST"},"navigate")
-                        .then(()=>service.emit("refreshEffectList"))),
+                        .then(()=>effectsStore.next(undefined as unknown as IEffects))),
                 navigateTo: service.subscribe("navigateTo", (index)=>
                     chipRequest(`/currentEffect`,
                         {method:"POST", body: new URLSearchParams({currentEffectIndex:index})},"navigateTo")
-                        .then(()=>service.emit("refreshEffectList"))),
+                        .then(()=>effectsStore.next(undefined as unknown as IEffects))),
                 toggleEffect: service.subscribe("toggleEffect", (effect) => 
                     chipRequest(`/${effect.enabled?"disable":"enable"}Effect`,
                         {method:"POST", body:new URLSearchParams({effectIndex:effects.Effects.findIndex(eff=>eff===effect).toString()})},"effectEnable")
-                        .then(()=>service.emit("refreshEffectList"))),
+                        .then(()=>effectsStore.next(undefined as unknown as IEffects))),
             };
     
             return () => Object.values(subs).forEach(service.unsubscribe);
@@ -107,20 +128,22 @@ export const Esp32 = withStyles(({activeHttpPrefix, selected, classes}:IEsp32Pro
     }, [effects, selected]);
 
     useEffect(() => {
-        if (config&&selected) {
-            service.emit("ChipConfig", config);
-            const subscribers= service.subscribe("subscription",sub=>{service.emit("ChipConfig",config,sub.eventId)});
-            return ()=>service.unsubscribe(subscribers);
+        if (stats&&selected) {
+            statsStore.next(stats);
         }
-    }, [config,selected]);
+    }, [stats, selected]);
 
     useEffect(() => {
-        if(configSpec&&selected){
-            service.emit("ChipConfigSpec", configSpec);
-            const subscribers= service.subscribe("subscription",sub=>{service.emit("ChipConfigSpec",configSpec,sub.eventId)});
-            return ()=>service.unsubscribe(subscribers);
-        } 
-    }, [configSpec,selected]);
+        if (config&&selected) {
+            configStore.next(config);
+        }
+    }, [config, selected]);
+
+    useEffect(() => {
+        if (configSpec&&selected) {
+            configSpecStore.next(configSpec);
+        }
+    }, [configSpec, selected]);
 
     function getDeviceShortName():string {
         const ipAddrPattern = /(https?:\/\/)(([12]?\d{1,2}[.]){3}([12]?\d{1,2})).*/g

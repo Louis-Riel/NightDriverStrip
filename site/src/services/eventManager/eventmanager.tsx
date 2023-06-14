@@ -1,11 +1,15 @@
+import { BehaviorSubject } from "rxjs";
 
 interface IEventManager {
     subscribe: (eventName: any, handler: any) => string;
     unsubscribe: (eventId: any) => void;
     emit: (eventName: string, data?: any, entityId?: string) => void;
+    getPropertyStore: <T>(storeName: string)=>BehaviorSubject<T>|undefined;
+    setPropertyStore: <T>(name: string,store: BehaviorSubject<T>)=>BehaviorSubject<T>;
 }
 
 const subscribers:Map<string,Map<string,Function>> = new Map<string,Map<string,Function>>();
+const propertyStores:Map<string,BehaviorSubject<any>> = new Map<string,BehaviorSubject<any>>();
 
 export const eventManager = ():IEventManager => {
     
@@ -41,6 +45,11 @@ export const eventManager = ():IEventManager => {
                     .filter(map=>map[0]===eventId)
                     .forEach(_map=>entry[1].delete(eventId)))
         },
-        emit
+        emit,
+        setPropertyStore: (storeName:string, store: BehaviorSubject<any>)=>{
+            propertyStores.set(storeName,store); 
+            return store
+        },
+        getPropertyStore: (name) => propertyStores.get(name)
     };
 };

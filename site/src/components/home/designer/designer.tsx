@@ -3,9 +3,10 @@ import { useState, useEffect } from "react";
 import { eventManager } from "../../../services/eventManager/eventmanager";
 import { Effect } from "./effect/effect";
 import { IEffect, IEffects } from '../../../models/config/nightdriver/effects';
-import { INightDriverConfiguration } from "../../../models/config/nightdriver/nightdriver";
+import { INightDriverConfiguration } from '../../../models/config/nightdriver/nightdriver';
 import { withStyles } from 'tss-react/mui';
 import { designerStyle } from "./style";
+import { Esp32Service } from "../../../services/esp32/esp32";
 
 interface IDesignerPanelProps {
     open: boolean;
@@ -14,15 +15,17 @@ interface IDesignerPanelProps {
 }
 
 export const DesignerPanel = withStyles((props:IDesignerPanelProps) => {
-    const [chipConfig, setChipConfig] = useState(undefined as unknown as INightDriverConfiguration);
-    const [service] = useState(eventManager());
     const { classes } = props;
 
+    const [espService] = useState(Esp32Service(["INightDriverConfiguration","IEffects"]));
+    const [chipConfig, setChipConfig] = useState(undefined as unknown as INightDriverConfiguration);
     const [ effects, setEffects ] = useState(undefined as unknown as IEffects);
-    const [ nextRefreshDate, setNextRefreshDate] = useState(0);
-    const [ editing, setEditing ] = useState(false);
+
     const [ effectInterval, setEffectInterval ] = useState(0);
     const [ effectTimeRemaining, setEffectTimeRemaining ] = useState(0);
+
+    const [ nextRefreshDate, setNextRefreshDate] = useState(0);
+    const [ editing, setEditing ] = useState(false);
     const [ hoverEffect, setHoverEffect ] = useState(undefined as unknown as IEffect);
     const [ displayMode, setDisplayMode ] = useState( props.displayMode );
     
@@ -47,24 +50,26 @@ export const DesignerPanel = withStyles((props:IDesignerPanelProps) => {
         }
     },[effectTimeRemaining]);
 
-    useEffect(() => {
-        const subs={
-            chipConfig:service.subscribe("ChipConfig",cfg=>{setChipConfig(cfg)}),
-            effectsSub:service.subscribe("effectList",(effectList:IEffects)=>{
-                setEffects(effectList);
-                setEffectInterval(effectList.effectInterval);
-                setEffectTimeRemaining(effectList.millisecondsRemaining);
-            }),
-        };
-        
-        return ()=>Object.values(subs).forEach(service.unsubscribe);
-    }, [service]);
+    useEffect(()=>{
+        const subs = {
+            chipConfig: espService.configStores.get("INightDriverConfiguration")?.subscribe({next:setChipConfig}),
+            effects: espService.configStores.get("IEffects")?.subscribe({next:(ret)=>{
+                if (ret) {
+                    const effectList = ret as IEffects;
+                    setEffects(effectList);
+                    setEffectInterval(effectList.effectInterval);
+                    setEffectTimeRemaining(effectList.millisecondsRemaining);
+                }
+            }}),
+        }
+        return ()=>Object.values(subs).forEach(sub=>sub?.unsubscribe());
+    },[espService]);
 
     useEffect(() => {
         if (props.open) {
             const nextTick = effectTimeRemaining < 100 ? (effectTimeRemaining ? 300 : 3000) : (effectTimeRemaining+500) * 0.75;
             const timer = setTimeout(()=>{
-                service.emit("refreshEffectList");
+                espService.refresh("IEffects");
                 if (nextTick + nextRefreshDate <= Date.now()) {
                     setNextRefreshDate(Date.now());                    
                 }
@@ -72,7 +77,7 @@ export const DesignerPanel = withStyles((props:IDesignerPanelProps) => {
 
             return () => clearTimeout(timer);
         }
-    },[props.open,nextRefreshDate,effectTimeRemaining]);
+    },[props.open,nextRefreshDate,effectTimeRemaining,espService]);
 
     const displayHeader = ()=>{
         return effects?<Box className={classes.effectsHeaderValue}>
@@ -83,10 +88,9 @@ export const DesignerPanel = withStyles((props:IDesignerPanelProps) => {
 
     const editingHeader = ()=>{
         return <ClickAwayListener onClickAway={()=>{
-                    service.emit("SetChipConfig",{...chipConfig,effectInterval});
+                    espService.update("INightDriverConfiguration",{...chipConfig,effectInterval});
+                    espService.refresh("INightDriverConfiguration");
                     setEditing(false);
-                    setEffects((prev=>{return {...prev,effectInterval}}));
-                    setNextRefreshDate(Date.now());
                     }}>
                     <Box className={classes.effectsHeaderValue}>
                         <TextField label="Interval ms"
@@ -106,11 +110,11 @@ export const DesignerPanel = withStyles((props:IDesignerPanelProps) => {
         <CardHeader 
                 action={effects?<IconButton aria-label="Next" onClick={()=>setDisplayMode(displayMode === "detailed" ? "summary":"detailed")}>
                         <Icon>{displayMode === "detailed" ? "expand_less":"expand_more"}</Icon></IconButton>:<Skeleton variant="circular" width={20} />}
-                title={effects?<Box>
+                title={effects?.Effects?<Box>
                             {effects.Effects.length} effects
-                            {displayMode==="detailed"?<IconButton aria-label="Previous" onClick={()=>service.emit("navigate",false)}><Icon>skip_previous</Icon></IconButton>:<></>}
-                            {displayMode==="detailed"?<IconButton aria-label="Next" onClick={()=>service.emit("navigate",true)}><Icon>skip_next</Icon></IconButton>:<></>}
-                            {displayMode==="detailed"?<IconButton aria-label="Refresh Effects" onClick={()=>setNextRefreshDate(Date.now())}><Icon>refresh</Icon></IconButton>:<></>}
+                            {displayMode==="detailed"?<IconButton aria-label="Previous" onClick={()=>espService.navigate(false)}><Icon>skip_previous</Icon></IconButton>:<></>}
+                            {displayMode==="detailed"?<IconButton aria-label="Next" onClick={()=>espService.navigate(true)}><Icon>skip_next</Icon></IconButton>:<></>}
+                            {displayMode==="detailed"?<IconButton aria-label="Refresh Effects" onClick={()=>espService.refresh("IEffects")}><Icon>refresh</Icon></IconButton>:<></>}
                        </Box>:<Box sx={{display:"flex", columnGap:1}}>
                             {[28,30,27].map(width => <Skeleton key={width} variant="circular" width={width}/>)}
                        </Box>} 
@@ -121,9 +125,9 @@ export const DesignerPanel = withStyles((props:IDesignerPanelProps) => {
         </CardContent>
         <LinearProgress className={classes.progress} variant="determinate" aria-label={`${Math.floor(progress)}%`} value={progress} />
         <CardActions disableSpacing>{effects?<Box>
-            <IconButton aria-label="Previous" onClick={()=>service.emit("navigate",false)}><Icon>skip_previous</Icon></IconButton>
-            <IconButton aria-label="Next" onClick={()=>service.emit("navigate",true)}><Icon>skip_next</Icon></IconButton>
-            <IconButton aria-label="Refresh Effects" onClick={()=>setNextRefreshDate(Date.now())}><Icon>refresh</Icon></IconButton>
+            <IconButton aria-label="Previous" onClick={()=>espService.navigate(false)}><Icon>skip_previous</Icon></IconButton>
+            <IconButton aria-label="Next" onClick={()=>espService.navigate(true)}><Icon>skip_next</Icon></IconButton>
+            <IconButton aria-label="Refresh Effects" onClick={()=>espService.refresh("IEffects")}><Icon>refresh</Icon></IconButton>
         </Box>:<Box sx={{display:"flex", columnGap:1}}>
             <Skeleton variant="circular" width={20}/>
             <Skeleton variant="circular" width={20}/>

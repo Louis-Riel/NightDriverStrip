@@ -3,26 +3,27 @@ import { useState, useEffect } from "react";
 import { eventManager } from "../../services/eventManager/eventmanager";
 import { ChipConfigItem } from "./chipconfigItem";
 import { SiteConfigItem } from "./siteconfigItem";
-import { ISiteConfig } from "../../models/config/site/siteconfig";
-import { INightDriverConfiguration, INightDriverConfigurationSpecs } from "../../models/config/nightdriver/nightdriver";
+import { INightDriverConfiguration, INightDriverConfigurationSpecs } from '../../models/config/nightdriver/nightdriver';
 import { withStyles } from 'tss-react/mui';
 import { configStyle } from "./style";
+import { IEffectSettings } from '../../models/config/site/siteconfig';
 
 interface IConfigPanelProps {
   classes?: any;
 }
 
 export const ConfigPanel = withStyles(({classes}:IConfigPanelProps) => {
-  const [siteConfig, setSiteConfig] = useState(undefined as unknown as ISiteConfig);
   const [chipConfig, setChipConfig] = useState(undefined as unknown as INightDriverConfiguration);
-  const [chipConfigSpec, setChipConfigSpec] = useState(undefined as unknown as [INightDriverConfigurationSpecs]);
+  
+  const [siteConfig, setSiteConfig] = useState(undefined as unknown as IEffectSettings);
+  const [chipConfigSpec, setChipConfigSpec] = useState(undefined as unknown as INightDriverConfigurationSpecs[]);
   const [service] = useState(eventManager());
 
   useEffect(()=>{
     const subs = {
-      siteConfig: service.subscribe("SiteConfig",cfg=>{setSiteConfig(cfg)}),
-      chipConfig: service.subscribe("ChipConfig",cfg=>{setChipConfig(cfg)}),
-      chipConfigSpec: service.subscribe("ChipConfigSpec",cfg=>{setChipConfigSpec(cfg)})
+      chipConfig: service.getPropertyStore("INightDriverConfiguration")?.subscribe({next:(cfg)=>setChipConfig(cfg as INightDriverConfiguration)}),
+      chipConfgSpec: service.getPropertyStore("INightDriverConfigurationSpecs")?.subscribe({next:ccs=>setChipConfigSpec(ccs as INightDriverConfigurationSpecs[])}),
+      siteConfig: service.getPropertyStore("IEffectSettings")?.subscribe({next:ccs=>setSiteConfig(ccs as IEffectSettings)}),
     }
     return ()=>{Object.values(subs).forEach(service.unsubscribe)};
   },[service]);
@@ -48,7 +49,6 @@ export const ConfigPanel = withStyles(({classes}:IConfigPanelProps) => {
         {siteConfig?Object.entries(siteConfig).map(entry => <SiteConfigItem 
                                                                 key={entry[0]}
                                                                 id={entry[0]}
-                                                                typeName={entry[1].type}
                                                                 {...entry[1]}/>):<Box>
                                                                     <Skeleton variant="text"/>                
                                                                     <Skeleton variant="text"/>                

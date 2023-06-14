@@ -8,7 +8,6 @@ import { StatsPanel } from "./statistics/stats";
 import { DesignerPanel } from "./designer/designer";
 import { httpPrefix } from "../../espaddr";
 import { eventManager } from "../../services/eventManager/eventmanager";
-import { SiteConfig } from "../../config/siteconfig";
 import { DevicePicker } from "./devicepicker/devicepicker";
 import { mainAppStyle } from "./style"
 
@@ -41,7 +40,6 @@ export const AppPannel = withStyles(({classes}) => {
     
     return <ThemeProvider theme={theme}>
         <CssBaseline />
-            <SiteConfig />
             <AppBar sx={{
                 zIndex: theme.zIndex.drawer + 1,
                 transition: theme.transitions.create(['width', 'margin'], {

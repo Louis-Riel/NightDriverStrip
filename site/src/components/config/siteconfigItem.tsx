@@ -1,6 +1,7 @@
-import { ListItem, FormControlLabel, Typography, Checkbox, ClickAwayListener, ListItemText, TextField, ListItemButton } from "@mui/material";
+import { ListItem, FormControlLabel, Typography, Checkbox, ClickAwayListener, ListItemText, TextField, ListItemButton, Skeleton } from "@mui/material";
 import { useState, useEffect } from "react";
 import { eventManager } from "../../services/eventManager/eventmanager";
+import { IEffectSettings } from "../../models/config/site/siteconfig";
 
 interface ISiteConfigItemProps { 
     name:string;
@@ -11,6 +12,7 @@ interface ISiteConfigItemProps {
 
 export function SiteConfigItem({ name, value, typeName, id }:ISiteConfigItemProps){
     const [ service ] = useState(eventManager());
+    const [ siteConfig, setSiteConfig] = useState(undefined as unknown as IEffectSettings);
   
     const [ editing, setEditing] = useState(false);
     const [ configValue, setConfigValue] = useState(value);
@@ -25,8 +27,21 @@ export function SiteConfigItem({ name, value, typeName, id }:ISiteConfigItemProp
                 return value;
         }
     };
-    useEffect(()=>{!editing && service.emit("SetSiteConfigItem",{value:configValue, id})},[configValue,editing]);
+    useEffect(()=>{
 
+        !editing && service.getPropertyStore("IEffectSettings")?.next({...siteConfig,[name]:configValue})
+        service.emit("SetSiteConfigItem",{value:configValue, id})},[configValue,editing]);
+
+    useEffect(()=>{
+        const subs = {
+          siteConfig: service.getPropertyStore("IEffectSettings")?.subscribe({next:ccs=>setSiteConfig(ccs as IEffectSettings)}),
+        }
+        return ()=>{Object.values(subs).forEach(service.unsubscribe)};
+      },[service]);
+    
+    if (typeName === undefined) {
+        return <Skeleton/>;
+    }
     if (typeName.toLowerCase() === "boolean") {
         return <ListItemButton  onClick={_evt=>setEditing(false)}>
             <FormControlLabel
