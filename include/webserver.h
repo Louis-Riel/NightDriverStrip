@@ -94,7 +94,8 @@ class CWebServer
         {}
     };
 
-    static std::vector<SettingSpec> deviceSettingSpecs;
+    static std::vector<SettingSpec> mySettingSpecs;
+    static std::vector<std::reference_wrapper<SettingSpec>> deviceSettingSpecs;
     static const std::map<String, ValueValidator> settingValidators;
 
     AsyncWebServer _server;
@@ -150,9 +151,9 @@ class CWebServer
 
     // Straightforward support functions
 
-    static bool IsPostParamTrue(AsyncWebServerRequest * pRequest, const String &  paramName);
-    static const std::vector<SettingSpec> & LoadDeviceSettingSpecs();
-    static void SendSettingSpecsResponse(AsyncWebServerRequest * pRequest, const std::vector<SettingSpec> & settingSpecs);
+    static bool IsPostParamTrue(AsyncWebServerRequest * pRequest, const String & paramName);
+    static const std::vector<std::reference_wrapper<SettingSpec>> & LoadDeviceSettingSpecs();
+    static void SendSettingSpecsResponse(AsyncWebServerRequest * pRequest, const std::vector<std::reference_wrapper<SettingSpec>> & settingSpecs);
     static void SetSettingsIfPresent(AsyncWebServerRequest * pRequest);
     static long GetEffectIndexFromParam(AsyncWebServerRequest * pRequest, bool post = false);
     static bool CheckAndGetSettingsEffect(AsyncWebServerRequest * pRequest, std::shared_ptr<LEDStripEffect> & effect, bool post = false);
