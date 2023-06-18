@@ -6,7 +6,7 @@ import { AreaStat } from "./areachart/areachart";
 import { BarStat } from "./barchart/barchart";
 import { withStyles } from 'tss-react/mui';
 import { statsStyle } from "./style";
-import { IEffectSettings } from "../../../models/config/site/siteconfig";
+import { ISiteOptions } from "../../../models/config/site/siteconfig";
 import { Esp32Service } from "../../../services/esp32/esp32";
 import { SiteConfigManager } from "../../../services/siteconfig/siteconfig";
 
@@ -20,10 +20,9 @@ export const StatsPanel = withStyles(({ open, smallScreen, classes }:IStatsPanel
     const [espService] = useState(Esp32Service(["IEffects","IESPState"]));
     const [siteConfigService] = useState(SiteConfigManager());
 
-    const [ siteConfig, setSiteConfig] = useState({} as IEffectSettings);
+    const [ siteConfig, setSiteConfig] = useState({} as ISiteOptions);
     const [ statistics, setStatistics] = useState(undefined as unknown as IConvertedStat);
 
-    const [ timer, setTimer ] = useState(undefined as unknown as any);
     const [ lastRefreshDate, setLastRefreshDate] = useState(undefined as unknown as number);
     const [ openedCategories, setOpenedCategories ] = useState({
         Package:false,
@@ -51,9 +50,9 @@ export const StatsPanel = withStyles(({ open, smallScreen, classes }:IStatsPanel
     useEffect(() => {
         if (open) {
             espService.refresh("IESPState");
-            setTimer(setTimeout(() => {setLastRefreshDate(Date.now())},((siteConfig?.statsRefreshRate?.value as number)||3)*1000));
+            const timer = setTimeout(() => {setLastRefreshDate(Date.now())},((siteConfig?.statsRefreshRate?.value as number)||3)*1000);
 
-            return () => {timer && clearTimeout(timer)};
+            return () => clearTimeout(timer);
         }
     },[siteConfig, lastRefreshDate, open]);
 

@@ -10,7 +10,7 @@ import { httpPrefix } from "../../espaddr";
 import { eventManager } from "../../services/eventManager/eventmanager";
 import { DevicePicker } from "./devicepicker/devicepicker";
 import { mainAppStyle } from "./style"
-
+import { ISiteOptions } from '../../models/config/site/siteconfig';
 export enum DrawerWidth {
     close=80,
     open=300
@@ -19,22 +19,25 @@ export enum DrawerWidth {
 const toolbarHeight=74;
 
 export const AppPannel = withStyles(({classes}) => {
-    const { theme, themeMode, setThemeMode } = useThemeSwitcher();
-    const [ drawerWidth, setDrawerWidth ] = useState(DrawerWidth.close);
+    const {theme, themeMode, setThemeMode } = useThemeSwitcher();
+    const [drawerWidth, setDrawerWidth ] = useState(DrawerWidth.close);
     const [drawerOpened, setDrawerOpened] = useState(false);
     const [stats, setStats] = useState(false);
     const [designer, setDesigner] = useState(true);
     const [activeDevice, setActiveDevice] = useState(httpPrefix||"Current Device");
     const [smallScreen, setSmallScreen ] = useState(false);
     const [service] = useState(eventManager());
+    const [siteConfig, setSiteConfig ] = useState<ISiteOptions>()
 
     useEffect(()=>{
         const subs = {
             isSmallScreen: service.subscribe("isSmallScreen",setSmallScreen),
-            config: service.subscribe("SiteConfig",cfg => setThemeMode(cfg.UIMode.value))
+            config: service.getPropertyStore<ISiteOptions>("SiteSettings")?.subscribe({next:setSiteConfig}),
         };
         return ()=>Object.values(subs).forEach(sub=>service.unsubscribe(sub));
     },[service]);
+
+    useEffect(()=>{siteConfig?.UIMode && setThemeMode(siteConfig?.UIMode?.value === "light" ? "light" : "dark")},[siteConfig?.UIMode])
 
     useEffect(()=>setDrawerWidth(drawerOpened?DrawerWidth.open:DrawerWidth.close),[drawerOpened]);
     
@@ -94,7 +97,7 @@ export const AppPannel = withStyles(({classes}) => {
                     }}>
                 {drawerOpened?<Box sx={{width:DrawerWidth.open, display:"flex", justifyContent: "space-between", alignItems: "center"}}>
                     <Box sx={{display:"flex",height:toolbarHeight, alignItems: "center"}}>
-                        <IconButton aria-label="Display Mode" onClick={()=>service.emit("SetSiteConfigItem",{value:themeMode==="dark"?"light":"dark", id:"UIMode"})} ><Icon>{themeMode === "dark" ? "dark_mode" : "light_mode"}</Icon></IconButton>
+                        <IconButton aria-label="Display Mode" onClick={()=>service.getPropertyStore<ISiteOptions>("SiteSettings")?.next({...siteConfig,"UIMode":{...(siteConfig as ISiteOptions).UIMode,value:themeMode==="dark"?"light":"dark"}})} ><Icon>{themeMode === "dark" ? "dark_mode" : "light_mode"}</Icon></IconButton>
                         <ListItemText primary={(themeMode === "dark" ? "Dark" : "Light") + " Mode"}/>
                     </Box>
                     <IconButton aria-label="Close Config" onClick={()=>setDrawerOpened(!drawerOpened)}>
@@ -110,7 +113,7 @@ export const AppPannel = withStyles(({classes}) => {
                             flexDirection:drawerOpened?"row":"column",
                     }}>{[{caption:"Home", flag: designer, setter: setDesigner, icon: "home"},
                          {caption:"Statistics", flag: stats, setter: setStats, icon: "area_chart"},
-                         {caption: "Configuration", flag: drawerOpened, icon: "settings", setter: setDrawerOpened}].map(item =>
+                         {caption:"Configuration", flag: drawerOpened, icon: "settings", setter: setDrawerOpened}].map(item =>
                         <ListItem key={item.icon}>
                             <ListItemIcon><IconButton aria-label={item.caption} onClick={() => item.setter(prevValue => !prevValue)}>
                                 <Icon color="action" className={item.flag ? classes.optionSelected : classes.optionUnselected}>{item.icon}</Icon>

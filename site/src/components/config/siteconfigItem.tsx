@@ -1,7 +1,7 @@
 import { ListItem, FormControlLabel, Typography, Checkbox, ClickAwayListener, ListItemText, TextField, ListItemButton, Skeleton } from "@mui/material";
 import { useState, useEffect } from "react";
 import { eventManager } from "../../services/eventManager/eventmanager";
-import { IEffectSettings } from "../../models/config/site/siteconfig";
+import { ISiteOptions } from "../../models/config/site/siteconfig";
 
 interface ISiteConfigItemProps { 
     name:string;
@@ -12,7 +12,7 @@ interface ISiteConfigItemProps {
 
 export function SiteConfigItem({ name, value, typeName, id }:ISiteConfigItemProps){
     const [ service ] = useState(eventManager());
-    const [ siteConfig, setSiteConfig] = useState(undefined as unknown as IEffectSettings);
+    const [ siteConfig, setSiteConfig] = useState(undefined as unknown as ISiteOptions);
   
     const [ editing, setEditing] = useState(false);
     const [ configValue, setConfigValue] = useState(value);
@@ -28,16 +28,15 @@ export function SiteConfigItem({ name, value, typeName, id }:ISiteConfigItemProp
         }
     };
     useEffect(()=>{
-
-        !editing && service.getPropertyStore("IEffectSettings")?.next({...siteConfig,[name]:configValue})
-        service.emit("SetSiteConfigItem",{value:configValue, id})},[configValue,editing]);
+        !editing && siteConfig && service.getPropertyStore("SiteSettings")?.next({...siteConfig,[id]:{...siteConfig[id],value:configValue}})
+    },[configValue,editing]);
 
     useEffect(()=>{
         const subs = {
-          siteConfig: service.getPropertyStore("IEffectSettings")?.subscribe({next:ccs=>setSiteConfig(ccs as IEffectSettings)}),
+          siteConfig: service.getPropertyStore("SiteSettings")?.subscribe({next:ccs=>setSiteConfig(ccs as ISiteOptions)}),
         }
         return ()=>{Object.values(subs).forEach(service.unsubscribe)};
-      },[service]);
+    },[service]);
     
     if (typeName === undefined) {
         return <Skeleton/>;
@@ -49,7 +48,7 @@ export function SiteConfigItem({ name, value, typeName, id }:ISiteConfigItemProp
                 label={<Typography variant="caption">{name}</Typography>} 
                 labelPlacement="start"
                 control={<Checkbox 
-                    defaultChecked={value as boolean}
+                    checked={value as boolean}
                     onChange={event => setConfigValue(event.target.checked)}/>} />
         </ListItemButton>;
     }

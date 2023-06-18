@@ -1,13 +1,11 @@
 import { Typography, ListItem, Paper, Box, Checkbox, CircularProgress, IconButton, Icon, Dialog, DialogTitle, DialogContent, DialogContentText, TextField, DialogActions, Button, Card, CardHeader, Avatar, CardContent, Skeleton } from "@mui/material";
 import { useState, useEffect, useMemo } from "react";
 import { withStyles } from "tss-react/mui";
-import { IEffects, IEffect, IEffectOptions } from '../../../../models/config/nightdriver/effects';
-import { eventManager } from "../../../../services/eventManager/eventmanager";
+import { IEffects, IEffect } from '../../../../models/config/nightdriver/effects';
 import { effectStyle } from "./style";
 import { Esp32Service } from "../../../../services/esp32/esp32";
-import { IEffectOption, IEffectSettings } from '../../../../models/config/site/siteconfig';
-import { Observable } from "rxjs";
-import { SiteConfigManager } from "../../../../services/siteconfig/siteconfig";
+import { ITypedOption, IEffectOptions } from '../../../../models/config/site/siteconfig';
+import { EffectConfigManager } from "../../../../services/siteconfig/siteconfig";
 
 interface IEffectProps {
     index: number;
@@ -21,48 +19,45 @@ interface IEffectProps {
 }
 
 interface IFullEffect extends IEffect {
-    options: {[key:string]: IEffectOption},
+    options: {[key:string]: ITypedOption},
 }
 
 export const Effect = withStyles(({ effectInterval, millisecondsRemaining, selected, displayMode, detailMode, index, effects, classes }:IEffectProps)=>{
-    const [service] = useState(eventManager());
     const [espService] = useState(Esp32Service(["IEffects","IESPState"]));
-    const [effectsStore] = useState(SiteConfigManager());
+    const [effectOptionStore] = useState(EffectConfigManager());
 
     const [ progress, setProgress ] = useState(0);
-    const [ effectSettings, setEffectSettings] = useState(undefined as unknown as IEffectSettings);
+    const [ effectSettings, setEffectSettings] = useState(undefined as unknown as IEffectOptions);
     const [ dopen, setDOpen ] = useState(false);
     
     const effect = useMemo(()=>effects.Effects[index],[index,...effects.Effects])
     
-    useEffect(() => {
-        const subs={
-            effectSettings:effectsStore.subscribe({next:(val)=>{setEffectSettings(val)}})
-        };
-        
-        return ()=>Object.values(subs).forEach(sub=>sub?.unsubscribe());
-    }, [effectsStore]);
-
     const defaultConfig={ 
         "Effect Image":{
+            name: "Effect Image",
             typeName: "url",
             value: "./favicon.ico"
-        } as IEffectOption};
+        } as ITypedOption};
+
+    useEffect(()=>{effectOptionStore.subscribe({next:setEffectSettings})},[effectOptionStore]);
+
+    const getEffectName = () => {
+        let dups = effects.Effects.map((eff,idx)=>{return{idx,match:eff.name === effects.Effects[index].name}})
+                                  .filter(matches=>matches.match);
+        if (dups.length > 1) {
+            return `${effect.name}_${dups.findIndex(match=>match.idx === index)+1}`
+        }
+        return effect.name;
+    };
 
     const fullEffect:IFullEffect = useMemo(()=>{
-        const getEffectName = (index) => {
-            let dups = effects.Effects.map((eff,idx)=>{return{idx,match:eff.name === effects.Effects[index].name}})
-                                      .filter(matches=>matches.match);
-            if (dups.length > 1) {
-                return `${effect.name}_${dups.findIndex(match=>match.idx === index)+1}`
-            }
-            return effect.name;
-        };
-    
-        const effectName = getEffectName(index);
-        // return (effectSettings && effectSettings[effectName]) ? {...effect,options:effectSettings[effectName]} as IFullEffect : 
-        //                                                         {...effect,options:defaultConfig["default"]} as IFullEffect;
-        return {...effect,options:defaultConfig} as IFullEffect;
+        const effectName = getEffectName();
+        if (effectSettings) {
+            return (effectSettings[effectName]) ? {...effect,options:effectSettings[effectName]} as IFullEffect : 
+            {...effect,options:defaultConfig} as IFullEffect;
+        } else {
+            return {...effect} as IFullEffect;
+        }
     },[index,...effects.Effects,effectSettings]);
 
     const [options, setOptions] = useState(fullEffect.options);
@@ -114,11 +109,11 @@ export const Effect = withStyles(({ effectInterval, millisecondsRemaining, selec
         return <ListItem className={`${classes.effectline} ${effect.enabled ? "" : classes.disabled}`}>
             <Paper className={classes.effectline}>
                 <Box className={`${selected ? classes.activelightbar : classes.lightbar}`}></Box>
-                {getEffectOptionDialog()}
+                {fullEffect.options?getEffectOptionDialog():<></>}
                 {selected?<Box className={classes.line}>
                     <Box className={classes.effectName}>
                         <Checkbox checked={fullEffect.enabled} onChange={(event)=>espService.toggleEffect(index,!event.target.checked)} />
-                        <img alt="Effect Tile" style={{height: 60}} src={fullEffect.options["Effect Image"].value as string}/>
+                        {fullEffect.options?<img alt="Effect Tile" style={{height: 60}} src={fullEffect.options["Effect Image"].value as string}/>:<Skeleton/>}
                     </Box>
                     <Typography>{fullEffect.name}</Typography>
                     <Box>
@@ -128,7 +123,7 @@ export const Effect = withStyles(({ effectInterval, millisecondsRemaining, selec
                     <Box  className={classes.effectDetail}>
                         <Checkbox checked={fullEffect.enabled} onChange={(event)=>espService.toggleEffect(index,!event.target.checked)} />
                         <Box className={classes.effectName}>
-                            <img alt="Effect Tile" style={{height: 60}} src={fullEffect.options["Effect Image"].value as string}/>
+                            {fullEffect.options?<img alt="Effect Tile" style={{height: 60}} src={fullEffect.options["Effect Image"].value as string}/>:<Skeleton/>}
                             <Typography>{fullEffect.name}</Typography>
                             <IconButton aria-label="Effect Setting" onClick={()=>setDOpen(true)}><Icon>settings</Icon></IconButton>
                         </Box>
@@ -144,8 +139,7 @@ export const Effect = withStyles(({ effectInterval, millisecondsRemaining, selec
 
     function getEffectOptionDialog() {
         const save = () => {
-            // effectsStore.next({options});
-            service.emit("setEffectSettings",{index,options});
+            effectOptionStore.next({...effectOptionStore.value, [getEffectName()]:options});
             setDOpen(false);
         };
         return (

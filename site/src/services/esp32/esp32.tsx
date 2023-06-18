@@ -97,7 +97,7 @@ const configStores = Array.from(new Map<string,ITriggerableUrlStore>([
         operation: "Get Chip Statistics"
     } as ITriggerableUrlStore],
 ]).entries()).reduce((stores,store)=>{
-    const storeName = store[0] as string;
+    const storeName = store[0];
     const theStore = store[1];
     stores.set(storeName,service.setPropertyStore(storeName, theStore.store));
     storeUpdates.set(storeName,()=>{theStore.trigger.next(new Date())});
@@ -111,7 +111,7 @@ const configStores = Array.from(new Map<string,ITriggerableUrlStore>([
                     const formData = new FormData();
                     Object.entries(val).forEach(entry=>formData.append(entry[0],entry[1]));
                     chipJsonRequest<INightDriverConfiguration>(`/settings`,{method: "POST", body:formData},"Set Chip Config",3000,of(0))
-                                    .subscribe({next: (val)=>theStore.store.next(val)});
+                                    .subscribe({next: theStore.store.next});
                 }
             }});
         default:
@@ -139,7 +139,7 @@ export const Esp32Service = (storeNames:string[]):IEsp32Service => {
                 const theStore = configStores.get(storeName) as BehaviorSubject<INightDriverConfiguration>;
                 switch (storeName) {
                     case "INightDriverConfiguration":
-                    case "IEffectSettings":
+                    case "SiteSettings":
                             theStore.next(value);                       
                         break;
 
@@ -149,12 +149,15 @@ export const Esp32Service = (storeNames:string[]):IEsp32Service => {
             }
         },
         navigate:(up:boolean)=>{chipRequest(`/${up ? "nextEffect" : "previousEffect"}`,{method:"POST"},"navigate")
-                                    .then(storeUpdates.get("IEffects")as ()=>void)},
+                                    .then(storeUpdates.get("IEffects")as ()=>void)
+                                    .catch(console.error)},
         navigateTo:(index:number)=>{chipRequest(`/currentEffect`,
                         {method:"POST", body: new URLSearchParams({currentEffectIndex:`${index}`})},"navigateTo")
-                                    .then(storeUpdates.get("IEffects")as ()=>void)},
+                                    .then(storeUpdates.get("IEffects")as ()=>void)
+                                    .catch(console.error)},
         toggleEffect:(index:number,state:boolean)=>{chipRequest(`/${state?"disable":"enable"}Effect`,
                         {method:"POST", body:new URLSearchParams({effectIndex:`${index}`})},"effectEnable")
-                                    .then(storeUpdates.get("IEffects")as ()=>void)},    
+                                    .then(storeUpdates.get("IEffects")as ()=>void)
+                                    .catch(console.error)},    
     };
 }; 

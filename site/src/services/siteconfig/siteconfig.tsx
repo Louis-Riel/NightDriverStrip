@@ -1,9 +1,9 @@
 import { eventManager } from "../eventManager/eventmanager";
 import { BehaviorSubject } from 'rxjs';
-import { IEffectSettings } from '../../models/config/site/siteconfig';
+import { IEffectOptions, ISiteOptions } from '../../models/config/site/siteconfig';
 
 const service = eventManager();
-const defaultConfig={
+const defaultConfig:ISiteOptions={
     statsRefreshRate: {
         name: "Refresh rate",
         typeName: "int",
@@ -24,16 +24,26 @@ const defaultConfig={
         typeName: "string",
         value: "dark"
     }
-} as IEffectSettings;
-const siteOptionsStore:BehaviorSubject<IEffectSettings> = service.setPropertyStore("IEffectSettings",new BehaviorSubject<IEffectSettings>(window.sessionStorage.getItem("config")?JSON.parse(window.sessionStorage.getItem("config")??"") : defaultConfig));
-const suby = siteOptionsStore.subscribe({next:(cfg:IEffectSettings)=>{
-    if (cfg && (JSON.stringify(cfg) !== JSON.stringify(siteOptionsStore.value))) {
-        Object.entries(cfg).forEach(entry=>siteOptionsStore.value[entry[0]] = entry[1])
-        window.sessionStorage.setItem("config",JSON.stringify(siteOptionsStore.value));
-        siteOptionsStore.next(siteOptionsStore.value);
-    }
-}});
+};
+
+export enum StoreName {
+    "siteconfig",
+    "effectconfig"
+}
+
+const stores = {
+    siteOptionsStore: service.setPropertyStore("SiteSettings",new BehaviorSubject<ISiteOptions>(window.sessionStorage.getItem("siteconfig")?JSON.parse(window.sessionStorage.getItem("siteconfig")??"{}") : defaultConfig)),
+    effectOptionsStore: service.setPropertyStore("EffectSettings",new BehaviorSubject<IEffectOptions>(window.sessionStorage.getItem("effectconfig")?JSON.parse(window.sessionStorage.getItem("effectconfig")??"{}") : {}))
+};
+const subs = {
+    siteconfig:stores.siteOptionsStore.subscribe({next:(cfg:ISiteOptions)=>window.sessionStorage.setItem("siteconfig",JSON.stringify(cfg))}),
+    effectconfig:stores.effectOptionsStore.subscribe({next:(cfg:IEffectOptions)=>window.sessionStorage.setItem("effectconfig",JSON.stringify(cfg))})
+};
 
 export const SiteConfigManager = () => {
-    return siteOptionsStore;
+    return stores.siteOptionsStore;
+};
+
+export const EffectConfigManager = () => {
+    return stores.effectOptionsStore;
 };

@@ -6,7 +6,7 @@ import { SiteConfigItem } from "./siteconfigItem";
 import { INightDriverConfiguration, INightDriverConfigurationSpecs } from '../../models/config/nightdriver/nightdriver';
 import { withStyles } from 'tss-react/mui';
 import { configStyle } from "./style";
-import { IEffectSettings } from '../../models/config/site/siteconfig';
+import { ISiteOptions } from '../../models/config/site/siteconfig';
 
 interface IConfigPanelProps {
   classes?: any;
@@ -15,7 +15,7 @@ interface IConfigPanelProps {
 export const ConfigPanel = withStyles(({classes}:IConfigPanelProps) => {
   const [chipConfig, setChipConfig] = useState(undefined as unknown as INightDriverConfiguration);
   
-  const [siteConfig, setSiteConfig] = useState(undefined as unknown as IEffectSettings);
+  const [siteConfig, setSiteConfig] = useState(undefined as unknown as ISiteOptions);
   const [chipConfigSpec, setChipConfigSpec] = useState(undefined as unknown as INightDriverConfigurationSpecs[]);
   const [service] = useState(eventManager());
 
@@ -23,7 +23,7 @@ export const ConfigPanel = withStyles(({classes}:IConfigPanelProps) => {
     const subs = {
       chipConfig: service.getPropertyStore("INightDriverConfiguration")?.subscribe({next:(cfg)=>setChipConfig(cfg as INightDriverConfiguration)}),
       chipConfgSpec: service.getPropertyStore("INightDriverConfigurationSpecs")?.subscribe({next:ccs=>setChipConfigSpec(ccs as INightDriverConfigurationSpecs[])}),
-      siteConfig: service.getPropertyStore("IEffectSettings")?.subscribe({next:ccs=>setSiteConfig(ccs as IEffectSettings)}),
+      siteConfig: service.getPropertyStore("SiteSettings")?.subscribe({next:ccs=>setSiteConfig(ccs as ISiteOptions)}),
     }
     return ()=>{Object.values(subs).forEach(service.unsubscribe)};
   },[service]);

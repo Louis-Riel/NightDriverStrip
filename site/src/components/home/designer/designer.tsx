@@ -1,6 +1,5 @@
 import { Box, Typography, ClickAwayListener, TextField, Card, CardHeader, IconButton, Icon, CardContent, LinearProgress, CardActions, List, Button, Skeleton } from "@mui/material";
 import { useState, useEffect } from "react";
-import { eventManager } from "../../../services/eventManager/eventmanager";
 import { Effect } from "./effect/effect";
 import { IEffect, IEffects } from '../../../models/config/nightdriver/effects';
 import { INightDriverConfiguration } from '../../../models/config/nightdriver/nightdriver';
@@ -17,8 +16,9 @@ interface IDesignerPanelProps {
 export const DesignerPanel = withStyles((props:IDesignerPanelProps) => {
     const { classes } = props;
 
-    const [espService] = useState(Esp32Service(["INightDriverConfiguration","IEffects"]));
-    const [chipConfig, setChipConfig] = useState(undefined as unknown as INightDriverConfiguration);
+    const [ espService] = useState(Esp32Service(["INightDriverConfiguration","IEffects"]));
+
+    const [ chipConfig, setChipConfig] = useState(undefined as unknown as INightDriverConfiguration);
     const [ effects, setEffects ] = useState(undefined as unknown as IEffects);
 
     const [ effectInterval, setEffectInterval ] = useState(0);
@@ -57,7 +57,7 @@ export const DesignerPanel = withStyles((props:IDesignerPanelProps) => {
                 if (ret) {
                     const effectList = ret as IEffects;
                     setEffects(effectList);
-                    setEffectInterval(effectList.effectInterval);
+                    !editing && setEffectInterval(effectList.effectInterval);
                     setEffectTimeRemaining(effectList.millisecondsRemaining);
                 }
             }}),
@@ -89,7 +89,7 @@ export const DesignerPanel = withStyles((props:IDesignerPanelProps) => {
     const editingHeader = ()=>{
         return <ClickAwayListener onClickAway={()=>{
                     espService.update("INightDriverConfiguration",{...chipConfig,effectInterval});
-                    espService.refresh("INightDriverConfiguration");
+                    espService.refresh("IEffects");
                     setEditing(false);
                     }}>
                     <Box className={classes.effectsHeaderValue}>
