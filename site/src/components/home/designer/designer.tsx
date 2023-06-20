@@ -81,16 +81,16 @@ export const DesignerPanel = withStyles((props:IDesignerPanelProps) => {
 
     const displayHeader = ()=>{
         return effects?<Box className={classes.effectsHeaderValue}>
-            <Typography variant="caption" color="textPrimary">Interval</Typography>:
-            <Button color="secondary" onClick={() => setEditing(true)}>{effects.effectInterval}</Button>
+            <Typography variant="caption" color="textSecondary">Interval</Typography>:
+            <Button color="primary" onClick={() => setEditing(true)}>{effects.effectInterval}</Button>
         </Box>:<Skeleton variant="text" width={200}/>;
     };
 
     const editingHeader = ()=>{
         return <ClickAwayListener onClickAway={()=>{
-                    espService.update("INightDriverConfiguration",{...chipConfig,effectInterval});
-                    espService.refresh("IEffects");
-                    setEditing(false);
+                        espService.update("INightDriverConfiguration",{...chipConfig,effectInterval});
+                        espService.refresh("IEffects");
+                        setEditing(false);
                     }}>
                     <Box className={classes.effectsHeaderValue}>
                         <TextField label="Interval ms"
@@ -112,9 +112,9 @@ export const DesignerPanel = withStyles((props:IDesignerPanelProps) => {
                         <Icon>{displayMode === "detailed" ? "expand_less":"expand_more"}</Icon></IconButton>:<Skeleton variant="circular" width={20} />}
                 title={effects?.Effects?<Box>
                             {effects.Effects.length} effects
-                            {displayMode==="detailed"?<IconButton aria-label="Previous" onClick={()=>espService.navigate(false)}><Icon>skip_previous</Icon></IconButton>:<></>}
-                            {displayMode==="detailed"?<IconButton aria-label="Next" onClick={()=>espService.navigate(true)}><Icon>skip_next</Icon></IconButton>:<></>}
-                            {displayMode==="detailed"?<IconButton aria-label="Refresh Effects" onClick={()=>espService.refresh("IEffects")}><Icon>refresh</Icon></IconButton>:<></>}
+                            {displayMode==="detailed"?<IconButton color="secondary" aria-label="Previous" onClick={()=>espService.navigate(false)}><Icon>skip_previous</Icon></IconButton>:<></>}
+                            {displayMode==="detailed"?<IconButton color="secondary" aria-label="Next" onClick={()=>espService.navigate(true)}><Icon>skip_next</Icon></IconButton>:<></>}
+                            {displayMode==="detailed"?<IconButton color="secondary" aria-label="Refresh Effects" onClick={()=>espService.refresh("IEffects")}><Icon>refresh</Icon></IconButton>:<></>}
                        </Box>:<Box sx={{display:"flex", columnGap:1}}>
                             {[28,30,27].map(width => <Skeleton key={width} variant="circular" width={width}/>)}
                        </Box>} 

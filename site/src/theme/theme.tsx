@@ -12,16 +12,16 @@ const getPalette = (mode: ThemeMode) => {
             white: "#fff"
         },
         primary: {
-            main: '#24292e',
-            light: '#4f5358',
-            dark: '#191c21',
-            contrastText: '#d6d6ff',
+            main: '#9bb1f9',
+            contrastText: 'rgba(24,255,255,0.87)',
+            dark: 'rgba(92,98,177,0.59)',
         },
         secondary: {
-            main: "#ce93d8",
-            light: "#f3e5f5",
-            dark: "#ab47bc",
-            contrastText: "rgba(0, 0, 0, 0.87)"
+            main: 'rgba(83,214,209,0.99)',
+        },
+        background: {
+            default: '#000000',
+            paper: 'rgba(48,48,48,0.19)',
         },
         error: {
             main: "#f44336",
@@ -36,10 +36,7 @@ const getPalette = (mode: ThemeMode) => {
             contrastText: "rgba(0, 0, 0, 0.87)"
         },
         info: {
-            main: "#29b6f6",
-            light: "#4fc3f7",
-            dark: "#0288d1",
-            contrastText: "rgba(0, 0, 0, 0.87)"
+            main: '#f7f518',
         },
         success: {
             main: "#66bb6a",
@@ -66,10 +63,35 @@ const getPalette = (mode: ThemeMode) => {
         contrastThreshold: 3,
         tonalOffset: 0.2,
         text: {
-            primary: '#93aff3',
-            secondary: 'rgba(149,183,228,0.7)',
-            disabled: "rgba(255, 255, 255, 0.5)",
-            icon: "rgba(255, 255, 255, 0.5)"
+            primary: '#9bb1f9',
+            secondary: '#6fbbec',
+        },
+        typography: {
+            fontSize: 12,
+        },
+        overrides: {
+            MuiAppBar: {
+                colorInherit: {
+                  backgroundColor: '#222222',
+                  color: '#fff',
+                },
+              },
+            MuiButton: {
+              root: {
+                background: 'linear-gradient(45deg, #111111 30%, #113311 90%)',
+                border: 0,
+                borderRadius: 30,
+                boxShadow: '0 3px 5px 2px rgba(105, 255, 135, .3)',
+                color: 'white',
+                height: 48,
+                padding: '0 30px',
+              },
+            },
+          },
+          props: {
+            MuiAppBar: {
+              color: 'inherit',
+            },
         },
         leds: {
             active: {
@@ -80,11 +102,6 @@ const getPalette = (mode: ThemeMode) => {
                 outer: "rgba(149,183,228,0.7)",
                 inner: "#03003a"
             }
-        },
-        divider: "rgba(255, 255, 255, 0.12)",
-        background: {
-            paper: "hwb(216deg 14% 73% / 99%)",
-            default: "hwb(215deg 8% 83%)"
         },
         action: {
             active: "#fff",
@@ -175,7 +192,7 @@ const getPalette = (mode: ThemeMode) => {
         contrastThreshold: 3,
         tonalOffset: 0.2,
         text: {
-            primary: "rgba(0, 0, 0, 0.87)",
+            primary: "rgba(200, 0, 0, 0.87)",
             secondary: "rgba(0, 0, 0, 0.6)",
             disabled: "rgba(0, 0, 0, 0.38)"
         },

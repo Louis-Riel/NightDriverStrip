@@ -45,6 +45,7 @@ export const AppPannel = withStyles(({classes}) => {
         <CssBaseline />
             <AppBar sx={{
                 zIndex: theme.zIndex.drawer + 1,
+                backgroundColor: theme.palette.background.default,
                 transition: theme.transitions.create(['width', 'margin'], {
                     easing: theme.transitions.easing.sharp,
                     duration: theme.transitions.duration.leavingScreen,
@@ -104,7 +105,6 @@ export const AppPannel = withStyles(({classes}) => {
                         <Icon>chevron_left</Icon>
                     </IconButton>
                 </Box>:<Box sx={{height:toolbarHeight}}></Box>}
-                <Divider/>
                 <List>{[
                     <Box 
                         key="control-panel-buttons"

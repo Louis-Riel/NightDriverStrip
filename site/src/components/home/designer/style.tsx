@@ -16,6 +16,7 @@ export const designerStyle = theme => ({
     },
     shownSome: {
         width: "max-content",
+        margin: "5px",
     },
     effectsHeader: {
         display: "flex",

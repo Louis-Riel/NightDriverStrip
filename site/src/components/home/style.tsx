@@ -86,10 +86,10 @@ export const mainAppStyle = (theme,{openDrawerWidth,closeDrawerWidth,toolbarHeig
       })
     },
     optionSelected: {
-      color: theme.palette.primary.contrastText
+      color: theme.palette.primary.main
     },
     optionUnselected: {
-      color: theme.palette.primary.main
+      color: theme.palette.primary.dark
     },
     setting: {
       display: "flex",
