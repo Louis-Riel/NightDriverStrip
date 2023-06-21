@@ -81,8 +81,8 @@ export const DesignerPanel = withStyles((props:IDesignerPanelProps) => {
 
     const displayHeader = ()=>{
         return effects?<Box className={classes.effectsHeaderValue}>
-            <Typography variant="caption" color="textSecondary">Interval</Typography>:
-            <Button color="primary" onClick={() => setEditing(true)}>{effects.effectInterval}</Button>
+            <Typography variant="caption" color="textPrimary">Interval</Typography>:
+            <Button color="secondary" onClick={() => setEditing(true)}>{effects.effectInterval}</Button>
         </Box>:<Skeleton variant="text" width={200}/>;
     };
 
