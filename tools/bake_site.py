@@ -20,8 +20,8 @@ js.write("export const httpPrefix='';")
 js.close()
 
 os.chdir('site')
-os.system('yarn')
-os.system('yarn build')
+os.system('npm install')
+os.system('npm run build')
 os.chdir('..')
 
 shutil.copy(os.path.join(srcFolder, backupAddr), os.path.join(srcFolder, espAddr))

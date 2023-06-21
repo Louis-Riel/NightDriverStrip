@@ -6,7 +6,6 @@
         "@emotion/react": "^11.11.0",
         "@emotion/styled": "^11.11.0",
         "@mui/material": "5.13.2",
-        "@mui/styles": "^5.13.2",
         "@types/d3-scale": "^4.0.3",
         "@types/node": "^20.2.5",
         "fs-watch-exec": "^1.1.2",
